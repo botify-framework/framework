@@ -6,7 +6,7 @@ use Amp\Delayed;
 use Amp\Promise;
 use ArrayAccess;
 use Botify\Exceptions\RetryException;
-use Botify\Utils\Button;
+use Botify\Utils\ReplyMarkup;
 use Botify\Utils\Collection;
 use Botify\Utils\Config;
 use Botify\Utils\Dotty;
@@ -508,28 +508,15 @@ if (!function_exists('Botify\\array_every')) {
     }
 }
 
-if (!function_exists('Botify\\button')) {
+if (!function_exists('Botify\\keyboard')) {
     /**
-     * @param $id
+     * @param null $key
      * @param mixed ...$args
      * @return mixed
      */
-    function button($id = null, ...$args): mixed
+    function keyboard($key = null, ...$args): mixed
     {
-        static $keyboards = null;
-        $keyboards ??= require_once base_path('utils/keyboards.php');
-        $json = $args['json'] ?? true;
-        $options = $args['options'] ?? [];
-        $default = $args['default'] ?? null;
-        unset($args['json'], $args['options'], $args['default']);
-
-        if (isset($args['remove']) && $args['remove'] === true) {
-            return Button::remove();
-        } elseif (is_array($value = value(data_get($keyboards, $id, $default), ... $args))) {
-            return Button::make($value, $options, $json);
-        }
-
-        return $default;
+        return ReplyMarkup::generate($key, ... $args);
     }
 }
 
