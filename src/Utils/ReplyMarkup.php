@@ -3,9 +3,14 @@
 namespace Botify\Utils;
 
 use function Botify\array_some;
+use function Botify\config;
+use function Botify\data_get;
+use function Botify\value;
 
-class Button
+class ReplyMarkup
 {
+    private static array $keyboards = [];
+
     /**
      * @var array
      */
@@ -31,7 +36,7 @@ class Button
      * @param bool $json
      * @return mixed
      */
-    public static function make($rows, array $options = [], $json = true): mixed
+    public static function make($rows, array $options = [], bool $json = true): mixed
     {
         $keyboard = new static($options);
 
@@ -108,5 +113,27 @@ class Button
         return json_encode([
             'remove_keyboard' => true,
         ]);
+    }
+
+    public static function generate(?string $key = null, ...$args)
+    {
+        static::$keyboards ??= require_once config('telegram.keyboards_path', function () {
+            throw new \Exception('You must set keyboards_path key in config/telegram.php');
+        });
+
+        if (isset($args['remove']) && $args['remove'] === true) {
+            return static::remove();
+        }
+
+        $json = $args['json'] ?? true;
+        $options = $args['options'] ?? [];
+        $default = $args['default'] ?? null;
+        unset($args['json'], $args['options'], $args['default']);
+
+        if (is_array($value = value(data_get(static::$keyboards, $key, $default), ... $args))) {
+            return ReplyMarkup::make($value, $options, $json);
+        }
+
+        return $default;
     }
 }

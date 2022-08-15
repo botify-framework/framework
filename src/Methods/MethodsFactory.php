@@ -8,7 +8,7 @@ use Botify\Exceptions\RetryException;
 use Botify\Request\Client;
 use Botify\TelegramAPI;
 use Botify\Types\Map;
-use Botify\Utils\Button;
+use Botify\Utils\ReplyMarkup;
 use Botify\Utils\FallbackResponse;
 use Botify\Utils\Logger\Logger;
 use Exception;
@@ -218,7 +218,7 @@ final class MethodsFactory
             $replyMarkup = &$attributes['reply_markup'];
 
             if (is_array($replyMarkup)) {
-                $replyMarkup = Button::make($replyMarkup);
+                $replyMarkup = ReplyMarkup::make($replyMarkup);
             }
         }
 
