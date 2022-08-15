@@ -2,10 +2,7 @@
 
 namespace Botify\Utils;
 
-use function Botify\array_some;
-use function Botify\config;
-use function Botify\data_get;
-use function Botify\value;
+use function Botify\{array_some, config, data_get, value};
 
 class ReplyMarkup
 {
