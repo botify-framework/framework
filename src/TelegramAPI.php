@@ -230,7 +230,7 @@ class TelegramAPI implements ArrayAccess
                         exit();
                     });
                     break;
-                case Handler::UPDATE_TYPE_SOCKET_SERVER:
+                case Handler::UPDATE_TYPE_HTTP_SERVER:
                     $options = getopt('d::', [
                         'drop_pending_updates::'
                     ]);
