@@ -20,7 +20,7 @@ class Handler
 {
     const UPDATE_TYPE_WEBHOOK = 1;
     const UPDATE_TYPE_POLLING = 2;
-    const UPDATE_TYPE_SOCKET_SERVER = 3;
+    const UPDATE_TYPE_HTTP_SERVER = 3;
 
     public static array $eventHandlers = [];
 

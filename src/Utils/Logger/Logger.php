@@ -9,6 +9,7 @@ use Psr\Log\AbstractLogger;
 use Psr\Log\LoggerTrait;
 use Psr\Log\LogLevel;
 use Throwable;
+use function Amp\ByteStream\getOutputBufferStream;
 use function Botify\array_some;
 use function Botify\base_path;
 use function Botify\config;
@@ -93,7 +94,7 @@ class Logger extends AbstractLogger
         }
 
         if ($this->type & static::ECHO_TYPE) {
-            \Botify\file_put_contents('php://output', Colorize::log($level, $log));
+            getOutputBufferStream()->write(Colorize::log($level, $log));
         }
 
         if ($this->type & static::FILE_TYPE) {
