@@ -396,44 +396,6 @@ if (!function_exists('Botify\\config')) {
     }
 }
 
-if (!function_exists('Botify\\repeat')) {
-    /**
-     * Repeat a code n times
-     * @param int $times
-     * @param callable $callback
-     * @param array $iterable
-     * @param ...$args
-     * @return array
-     */
-    function repeat(int $times, callable $callback, array $iterable = [], ...$args): array
-    {
-        $returns = [];
-
-        $iterable = array_pad($iterable, $times, '*');
-
-        foreach ($iterable as $index => $item) {
-            $returns[] = $callback($item, $index, ... $args);
-        }
-        return $returns;
-    }
-}
-
-if (!function_exists('Botify\\arepeat')) {
-    /**
-     * Asynchronous version of repeat
-     *
-     * @param int $times
-     * @param callable $callback
-     * @param array $iterable
-     * @param mixed ...$args
-     * @return Promise
-     */
-    function arepeat(int $times, callable $callback, array $iterable = [], ...$args): Promise
-    {
-        return gather(repeat($times, $callback, $iterable, ... $args));
-    }
-}
-
 if (!function_exists('Botify\\abs_path')) {
     /**
      * Get absolute path of a path
