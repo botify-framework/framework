@@ -653,17 +653,3 @@ if (!function_exists('Botify\\array_sole')) {
         return false;
     }
 }
-
-if (!function_exists('Botify\\file_get_contents')) {
-    function file_get_contents(string $filename): Promise
-    {
-        return read($filename);
-    }
-}
-
-if (!function_exists('Botify\\file_put_contents')) {
-    function file_put_contents(string $filename, string $data): Promise
-    {
-        return write($filename, $data);
-    }
-}
