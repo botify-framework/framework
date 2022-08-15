@@ -6,7 +6,7 @@ use Amp\Delayed;
 use Amp\Promise;
 use ArrayAccess;
 use Botify\Exceptions\RetryException;
-use Botify\Utils\Button;
+use Botify\Utils\ReplyMarkup;
 use Botify\Utils\Collection;
 use Botify\Utils\Config;
 use Botify\Utils\Dotty;
@@ -396,44 +396,6 @@ if (!function_exists('Botify\\config')) {
     }
 }
 
-if (!function_exists('Botify\\repeat')) {
-    /**
-     * Repeat a code n times
-     * @param int $times
-     * @param callable $callback
-     * @param array $iterable
-     * @param ...$args
-     * @return array
-     */
-    function repeat(int $times, callable $callback, array $iterable = [], ...$args): array
-    {
-        $returns = [];
-
-        $iterable = array_pad($iterable, $times, '*');
-
-        foreach ($iterable as $index => $item) {
-            $returns[] = $callback($item, $index, ... $args);
-        }
-        return $returns;
-    }
-}
-
-if (!function_exists('Botify\\arepeat')) {
-    /**
-     * Asynchronous version of repeat
-     *
-     * @param int $times
-     * @param callable $callback
-     * @param array $iterable
-     * @param mixed ...$args
-     * @return Promise
-     */
-    function arepeat(int $times, callable $callback, array $iterable = [], ...$args): Promise
-    {
-        return gather(repeat($times, $callback, $iterable, ... $args));
-    }
-}
-
 if (!function_exists('Botify\\abs_path')) {
     /**
      * Get absolute path of a path
@@ -508,28 +470,15 @@ if (!function_exists('Botify\\array_every')) {
     }
 }
 
-if (!function_exists('Botify\\button')) {
+if (!function_exists('Botify\\keyboard')) {
     /**
-     * @param $id
+     * @param null $key
      * @param mixed ...$args
      * @return mixed
      */
-    function button($id = null, ...$args): mixed
+    function keyboard($key = null, ...$args): mixed
     {
-        static $keyboards = null;
-        $keyboards ??= require_once base_path('utils/keyboards.php');
-        $json = $args['json'] ?? true;
-        $options = $args['options'] ?? [];
-        $default = $args['default'] ?? null;
-        unset($args['json'], $args['options'], $args['default']);
-
-        if (isset($args['remove']) && $args['remove'] === true) {
-            return Button::remove();
-        } elseif (is_array($value = value(data_get($keyboards, $id, $default), ... $args))) {
-            return Button::make($value, $options, $json);
-        }
-
-        return $default;
+        return ReplyMarkup::generate($key, ... $args);
     }
 }
 
@@ -664,19 +613,5 @@ if (!function_exists('Botify\\array_sole')) {
         }
 
         return false;
-    }
-}
-
-if (!function_exists('Botify\\file_get_contents')) {
-    function file_get_contents(string $filename): Promise
-    {
-        return read($filename);
-    }
-}
-
-if (!function_exists('Botify\\file_put_contents')) {
-    function file_put_contents(string $filename, string $data): Promise
-    {
-        return write($filename, $data);
     }
 }
