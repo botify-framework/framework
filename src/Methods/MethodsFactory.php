@@ -143,13 +143,12 @@ final class MethodsFactory
         if (method_exists($this, $name)) {
             return $this->{$name}(... $arguments);
         }
-
+        isset($arguments['parse_mode']) || $arguments['parse_mode'] = config('telegram.parse_mode', 'html');
         $arguments = [$arguments];
         $cast = $mapped[strtolower($name)] ?? false;
 
         return call(function () use ($name, $arguments, $cast) {
             return yield retry($times = config('telegram.sleep_threshold', 1), function ($attempts) use ($name, $times, $cast, $arguments) {
-                $arguments['parse_mode'] = config('telegram.parse_mode', 'html');
                 $request = yield $this->client->post($name, ... $arguments);
                 $response = yield $request->json();
 
