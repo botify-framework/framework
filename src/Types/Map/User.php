@@ -10,8 +10,10 @@ use Botify\Traits\Notifiable;
 use Botify\Utils\LazyJsonMapper;
 use function Amp\call;
 use function Botify\collect;
+use function Botify\concat;
 use function Botify\config;
 use function Botify\gather;
+use function Botify\value;
 
 /**
  * User
@@ -22,9 +24,11 @@ use function Botify\gather;
  * @method bool getIsBot()
  * @method bool getIsSelf()
  * @method string getFirstName()
+ * @method string getFullName()
  * @method string getLastName()
  * @method string getUsername()
  * @method string getLanguageCode()
+ * @method string getMention()
  * @method bool getCanJoinGroups()
  * @method bool getCanReadAllGroupMessages()
  * @method bool getSupportsInlineQueries()
@@ -35,9 +39,11 @@ use function Botify\gather;
  * @method bool isIsBot()
  * @method bool isIsSelf()
  * @method bool isFirstName()
+ * @method bool isFullName()
  * @method bool isLastName()
  * @method bool isUsername()
  * @method bool isLanguageCode()
+ * @method bool isMention()
  * @method bool isCanJoinGroups()
  * @method bool isCanReadAllGroupMessages()
  * @method bool isSupportsInlineQueries()
@@ -48,9 +54,11 @@ use function Botify\gather;
  * @method $this setIsBot(bool $value)
  * @method $this setIsSelf(bool $value)
  * @method $this setFirstName(string $value)
+ * @method $this setFullName(string $value)
  * @method $this setLastName(string $value)
  * @method $this setUsername(string $value)
  * @method $this setLanguageCode(string $value)
+ * @method $this setMention(string $value)
  * @method $this setCanJoinGroups(bool $value)
  * @method $this setCanReadAllGroupMessages(bool $value)
  * @method $this setSupportsInlineQueries(bool $value)
@@ -61,9 +69,11 @@ use function Botify\gather;
  * @method $this unsetIsBot()
  * @method $this unsetIsSelf()
  * @method $this unsetFirstName()
+ * @method $this unsetFullName()
  * @method $this unsetLastName()
  * @method $this unsetUsername()
  * @method $this unsetLanguageCode()
+ * @method $this unsetMention()
  * @method $this unsetCanJoinGroups()
  * @method $this unsetCanReadAllGroupMessages()
  * @method $this unsetSupportsInlineQueries()
@@ -74,9 +84,11 @@ use function Botify\gather;
  * @property bool $is_bot
  * @property bool $is_self
  * @property string $first_name
+ * @property string $full_name
  * @property string $last_name
  * @property string $username
  * @property string $language_code
+ * @property string $mention
  * @property bool $can_join_groups
  * @property bool $can_read_all_group_messages
  * @property bool $supports_inline_queries
@@ -110,15 +122,28 @@ class User extends LazyJsonMapper
         ));
 
         $this->_setProperty(
-            'is_super_admin', $this->id === (int)config('telegram.super_admin')
+            'is_super_admin', $this->getId() === (int)config('telegram.super_admin')
         );
 
         $this->_setProperty(
-            'is_self', $this->id === config('telegram.bot_user_id')
+            'is_self', $this->getId() === config('telegram.bot_user_id')
         );
 
-        if ($username = $this->getUsername())
-            $this->getAPI()->getRedis()?->getMap('users')->setValue(strtolower($username), $this->id);
+        if ($username = $this->getUsername()) {
+            $this->getAPI()->getRedis()?->getMap('users')->setValue(strtolower($username), $this->getId());
+        }
+
+        $this->_setProperty('full_name', concat($this->getFirstName(), ' ', $this->getLastName()));
+
+        $this->_setProperty('mention', match (strtolower(config('telegram.parse_mode', 'html'))) {
+            'html' => value(function () {
+                return '<a href="tg://user?id=' . $this->id . '">' . $this->getFullName() . '</a>';
+            }),
+            'markdown' => value(function () {
+                return '['. $this->getFullName() .'](tg://user?id='. $this->getId() .')';
+            }),
+            default => $this->isUsername() ? concat('@', $this->getUsername()) : '',
+        });
     }
 
     /**

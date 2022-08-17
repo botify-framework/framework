@@ -225,5 +225,7 @@ final class MethodsFactory
         foreach (self::$meable_attributes as $attr)
             if (isset($attributes[$attr]) && is_string($attribute = &$attributes[$attr]) && $attribute === 'me')
                 $attribute = config('telegram.bot_user_id');
+
+        $attributes['parse_mode'] = config('telegram.parse_mode', 'html');
     }
 }
