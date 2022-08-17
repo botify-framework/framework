@@ -379,20 +379,20 @@ if (!function_exists('Botify\\data_set')) {
 
 if (!function_exists('Botify\\config')) {
 
-    function config($id = null, $default = null)
+    function config($key = null, $default = null)
     {
         static $config = null;
         $config ??= Config::make();
 
-        if (is_null($id)) {
+        if (is_null($key)) {
             return $config;
         }
 
-        if (is_array($id)) {
-            return $config->set($id);
+        if (is_array($key)) {
+            return $config->set($key);
         }
 
-        return $config->get($id, $default);
+        return $config->get($key, $default);
     }
 }
 
@@ -613,5 +613,22 @@ if (!function_exists('Botify\\array_sole')) {
         }
 
         return false;
+    }
+}
+
+if (! function_exists('Botify\\escape_markdown')) {
+    /**
+     * Escape markdown special chars
+     *
+     * @param $text
+     * @return string
+     */
+    function escape_markdown($text): string
+    {
+        return str_replace([
+            '\\', '-', '#', '*', '+', '`', '.', '[', ']', '(', ')', '!', '&', '<', '>', '_', '{', '}',
+        ], [
+            '\\\\', '\-', '\#', '\*', '\+', '\`', '\.', '\[', '\]', '\(', '\)', '\!', '\&', '\<', '\>', '\_', '\{', '\}',
+        ], $text);
     }
 }
