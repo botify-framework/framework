@@ -530,7 +530,7 @@ if (!function_exists('Botify\\array_last')) {
 if (!function_exists('Botify\\concat')) {
     function concat(...$vars): string
     {
-        return implode($vars);
+        return trim(implode($vars));
     }
 }
 
