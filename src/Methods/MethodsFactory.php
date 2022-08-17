@@ -145,17 +145,12 @@ final class MethodsFactory
         }
 
         $arguments = [$arguments];
-
-        /**
-         * Prepend method name to arguments
-         */
-        array_unshift($arguments, $name);
-
         $cast = $mapped[strtolower($name)] ?? false;
 
         return call(function () use ($name, $arguments, $cast) {
             return yield retry($times = config('telegram.sleep_threshold', 1), function ($attempts) use ($name, $times, $cast, $arguments) {
-                $request = yield $this->client->post(... $arguments);
+                $arguments['parse_mode'] = config('telegram.parse_mode', 'html');
+                $request = yield $this->client->post($name, ... $arguments);
                 $response = yield $request->json();
 
                 if (empty($response['ok'])) {
@@ -225,7 +220,5 @@ final class MethodsFactory
         foreach (self::$meable_attributes as $attr)
             if (isset($attributes[$attr]) && is_string($attribute = &$attributes[$attr]) && $attribute === 'me')
                 $attribute = config('telegram.bot_user_id');
-
-        $attributes['parse_mode'] = config('telegram.parse_mode', 'html');
     }
 }
