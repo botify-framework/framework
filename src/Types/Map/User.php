@@ -12,6 +12,7 @@ use function Amp\call;
 use function Botify\collect;
 use function Botify\concat;
 use function Botify\config;
+use function Botify\escape_markdown;
 use function Botify\gather;
 use function Botify\value;
 
@@ -137,10 +138,10 @@ class User extends LazyJsonMapper
 
         $this->_setProperty('mention', match (strtolower(config('telegram.parse_mode', 'html'))) {
             'html' => value(function () {
-                return '<a href="tg://user?id=' . $this->id . '">' . $this->getFullName() . '</a>';
+                return '<a href="tg://user?id=' . $this->id . '">' . htmlspecialchars($this->getFullName()) . '</a>';
             }),
             'markdown' => value(function () {
-                return '['. $this->getFullName() .'](tg://user?id='. $this->getId() .')';
+                return '['. escape_markdown($this->getFullName()) .'](tg://user?id='. $this->getId() .')';
             }),
             default => $this->isUsername() ? concat('@', $this->getUsername()) : '',
         });
