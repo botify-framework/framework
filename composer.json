@@ -29,10 +29,5 @@
     "amphp/redis": "^1.0",
     "ext-pcntl": "*",
     "amphp/http-server-static-content": "^1.0"
-  },
-  "scripts": {
-    "post-install-cmd": [
-      "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
-    ]
   }
 }
