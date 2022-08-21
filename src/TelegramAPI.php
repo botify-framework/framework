@@ -29,7 +29,9 @@ use stdClass;
 use function Amp\ByteStream\getInputBufferStream;
 use function Amp\call;
 use function Amp\coroutine;
+use function Amp\File\createDirectoryRecursively;
 use function Amp\File\createSymlink;
+use function Amp\File\isDirectory;
 use function Amp\File\isSymlink;
 use const SIGINT;
 
@@ -180,7 +182,10 @@ class TelegramAPI implements ArrayAccess
                         }
                 }
             };
-            (yield isSymlink($staticPath = rtrim(static_path(), '/'))) ?: yield createSymlink(storage_path('/static'), $staticPath);
+            $sourceStaticPath = storage_path('/static');
+            $targetStaticPath = rtrim(static_path(), '/');
+            ! yield isDirectory($sourceStaticPath) && createDirectoryRecursively($sourceStaticPath, 0755);
+            (yield isSymlink($targetStaticPath)) ?: yield createSymlink($sourceStaticPath, $targetStaticPath);
 
             switch ($updateType) {
                 case Handler::UPDATE_TYPE_WEBHOOK:
