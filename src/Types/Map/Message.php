@@ -524,7 +524,7 @@ class Message extends LazyJsonMapper
      * @param ...$args
      * @return Promise
      */
-    public function copy($to = null,...$args): Promise
+    public function copy($to = null, ...$args): Promise
     {
         $to ??= $this->chat->id;
 
