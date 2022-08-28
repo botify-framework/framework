@@ -182,9 +182,11 @@ class TelegramAPI implements ArrayAccess
                         }
                 }
             };
+            // Creating static directory is useful when you're running Botify in private_html folder.
+            // The framework creates automatically the symlink when you restart the script
             $sourceStaticPath = storage_path('/static');
             $targetStaticPath = rtrim(static_path(), '/');
-            ! yield isDirectory($sourceStaticPath) && createDirectoryRecursively($sourceStaticPath, 0755);
+            yield isDirectory($sourceStaticPath) || createDirectoryRecursively($sourceStaticPath, 0755);
             (yield isSymlink($targetStaticPath)) ?: yield createSymlink($sourceStaticPath, $targetStaticPath);
 
             switch ($updateType) {
