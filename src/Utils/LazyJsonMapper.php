@@ -100,4 +100,19 @@ class LazyJsonMapper extends \LazyJsonMapper\LazyJsonMapper implements ArrayAcce
     {
         $this->_unsetProperty($offset);
     }
+
+    /**
+     * Prepare attributes before passing to API
+     *
+     * @param array $attrs
+     * @param array $extra
+     * @return array
+     */
+    protected function preparer(array $attrs, array $extra = []): array
+    {
+        if(isset($extra[0]) && is_array($extra[0]))
+            $extra = array_merge(array_shift($extra), $extra);
+
+        return array_merge($attrs, $extra);
+    }
 }
