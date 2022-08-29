@@ -132,7 +132,7 @@ class User extends LazyJsonMapper
             'is_self', $this->getId() === config('telegram.bot_user_id')
         );
 
-        if ($username = $this->getUsername()) {
+        if (config('telegram.cache_peers', true) && $username = $this->getUsername()) {
             $this->getAPI()->getRedis()?->getMap('users')->setValue(strtolower($username), $this->getId());
         }
 

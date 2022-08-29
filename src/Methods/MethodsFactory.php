@@ -13,10 +13,7 @@ use Botify\Utils\FallbackResponse;
 use Botify\Utils\Logger\Logger;
 use Exception;
 use function Amp\call;
-use function Botify\array_some;
-use function Botify\config;
-use function Botify\retry;
-use function Botify\value;
+use function Botify\{array_some, config, retry, value};
 
 /**
  * @mixin MethodsDoc
@@ -31,7 +28,7 @@ final class MethodsFactory
     protected Client $client;
     protected Logger $logger;
     protected ?Redis $redis;
-    private array $responses_map = [
+    private array $lazyResponses = [
         Map\WebhookInfo::class => [
             'getWebhookInfo'
         ],
@@ -121,67 +118,69 @@ final class MethodsFactory
      */
     public function __call(string $name, array $arguments = [])
     {
-        static $mapped = [];
+        static $responses = [];
 
-        if (empty($mapped))
-            foreach ($this->responses_map as $response => $methods)
+        if (empty($responses))
+            foreach ($this->lazyResponses as $response => $methods)
                 foreach ($methods as $method)
-                    $mapped[strtolower($method)] = $response;
+                    $responses[strtolower($method)] = $response;
 
-        $arguments = isset($arguments[0]) && is_array($arguments[0])
-            ? value(function () use ($arguments) {
-                $arguments = array_merge(array_shift($arguments), $arguments);
+        return call(function () use ($arguments, $name, $responses) {
+            $arguments = isset($arguments[0]) && is_array($arguments[0])
+                ? value(function () use ($arguments) {
+                    $arguments = array_merge(array_shift($arguments), $arguments);
 
-                return array_some($arguments, fn($v, $k) => is_string($k))
-                    ? $arguments
-                    : [$arguments];
-            })
-            : $arguments;
+                    return array_some($arguments, fn($v, $k) => is_string($k))
+                        ? $arguments
+                        : [$arguments];
+                })
+                : $arguments;
 
-        $this->bindAttributes($arguments);
+            yield $this->bindAttributes($arguments);
 
-        if (method_exists($this, $name)) {
-            return $this->{$name}(... $arguments);
-        }
-        isset($arguments['parse_mode']) || $arguments['parse_mode'] = config('telegram.parse_mode', 'html');
-        $arguments = [$arguments];
-        $cast = $mapped[strtolower($name)] ?? false;
+            if (method_exists($this, $name)) {
+                return $this->{$name}(... $arguments);
+            }
 
-        return call(function () use ($name, $arguments, $cast) {
-            return yield retry($times = config('telegram.sleep_threshold', 1), function ($attempts) use ($name, $times, $cast, $arguments) {
-                $request = yield $this->client->post($name, ... $arguments);
-                $response = yield $request->json();
+            $arguments = [$arguments];
+            $cast = $responses[strtolower($name)] ?? false;
 
-                if (empty($response['ok'])) {
-                    if (isset($response['error_code'])) {
-                        switch ($response['error_code']) {
-                            case 429:
-                                if ($attempts > $times) {
-                                    throw new RetryException($response['parameters']['retry_after'], $response['description']);
-                                }
-                                break;
-                            case 404:
-                                throw new Exception(sprintf(
-                                    'Trying to call undefined method [%s]', $name
-                                ));
-                            case 401:
-                                throw new Exception('You must provide a valid token');
+            return call(function () use ($name, $arguments, $cast) {
+                return yield retry($times = config('telegram.sleep_threshold', 1), function ($attempts) use ($name, $times, $cast, $arguments) {
+                    $request = yield $this->client->post($name, ... $arguments);
+                    $response = yield $request->json();
+
+                    if (empty($response['ok'])) {
+                        if (isset($response['error_code'])) {
+                            switch ($response['error_code']) {
+                                case 429:
+                                    if ($attempts > $times) {
+                                        throw new RetryException($response['parameters']['retry_after'], $response['description']);
+                                    }
+                                    break;
+                                case 404:
+                                    throw new Exception(sprintf(
+                                        'Trying to call undefined method [%s]', $name
+                                    ));
+                                case 401:
+                                    throw new Exception('You must provide a valid token');
+                            }
+
+                        }
+                    } else {
+                        if (in_array(gettype($response['result']), ['boolean', 'integer', 'string'])) {
+                            return $response['result'];
                         }
 
-                    }
-                } else {
-                    if (in_array(gettype($response['result']), ['boolean', 'integer', 'string'])) {
-                        return $response['result'];
+                        return $cast ? new $cast($response['result']) : $response['result'];
                     }
 
-                    return new $cast($response['result']);
-                }
-
-                return new FallbackResponse($response);
-            }, function ($attempts, $exception) use ($name) {
-                $retryAfter = $exception->getRetryAfter();
-                $this->logger->notice(sprintf('[%d] Waiting for %d seconds before continuing (required by "%s")', config('telegram.bot_user_id'), $retryAfter, $name));
-                return $retryAfter;
+                    return new FallbackResponse($response);
+                }, function ($attempts, $exception) use ($name) {
+                    $retryAfter = $exception->getRetryAfter();
+                    $this->logger->notice(sprintf('[%d] Waiting for %d seconds before continuing (required by "%s")', config('telegram.bot_user_id'), $retryAfter, $name));
+                    return $retryAfter;
+                });
             });
         });
     }
@@ -190,34 +189,50 @@ final class MethodsFactory
      * Bind attributes before passing to request
      *
      * @param $attributes
-     * @return void
+     * @return Promise
      */
-    private function bindAttributes(&$attributes)
+    private function bindAttributes(&$attributes): Promise
     {
-        if (isset($attributes['text'])) {
-            $text = &$attributes['text'];
-
-            if (is_array($text)) {
-                $text = print_r($text, true);
-            } elseif (is_object($text)) {
-                if (method_exists($text, '__toString')) {
-                    $text = (string)$text;
-                } else {
-                    $text = var_export($text, true);
+        return call(function () use (&$attributes) {
+            if (isset($attributes['text'])) {
+                if (is_array($text = &$attributes['text'])) {
+                    $text = print_r($text, true);
+                } elseif (is_object($text)) {
+                    if (method_exists($text, '__toString')) {
+                        $text = (string)$text;
+                    } else {
+                        $text = var_export($text, true);
+                    }
                 }
             }
-        }
 
-        if (isset($attributes['reply_markup'])) {
-            $replyMarkup = &$attributes['reply_markup'];
+            if (isset($attributes['reply_markup'])) {
+                $replyMarkup = &$attributes['reply_markup'];
 
-            if (is_array($replyMarkup)) {
-                $replyMarkup = ReplyMarkup::make($replyMarkup);
+                if (is_array($replyMarkup)) {
+                    $replyMarkup = ReplyMarkup::make($replyMarkup);
+                }
             }
-        }
 
-        foreach (self::$meable_attributes as $attr)
-            if (isset($attributes[$attr]) && is_string($attribute = &$attributes[$attr]) && $attribute === 'me')
-                $attribute = config('telegram.bot_user_id');
+
+            isset($attributes['user_id']) && $this->findReceptor($attributes['user_id']);
+            isset($attributes['chat_id']) && $this->findReceptor($attributes['chat_id']);
+
+            foreach (self::$meable_attributes as $attr)
+                if (isset($attributes[$attr]) && is_string($attribute = &$attributes[$attr]) && $attribute === 'me')
+                    $attribute = config('telegram.bot_user_id');
+
+            isset($attributes['parse_mode']) || $attributes['parse_mode'] = config('telegram.parse_mode', 'html');
+        });
+    }
+
+    /**
+     * @param $receptor
+     */
+    private function findReceptor(&$receptor)
+    {
+        if (($receptor instanceof Map\User || $receptor instanceof Map\Chat) && isset($receptor['id'])) {
+            $receptor = $receptor['id'];
+        }
     }
 }
