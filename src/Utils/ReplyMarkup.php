@@ -2,10 +2,28 @@
 
 namespace Botify\Utils;
 
-use function Botify\{array_some, config, data_get, value};
+use function Botify\{array_last, array_some, config, data_get, split_keys, value};
 
-class ReplyMarkup
+final class ReplyMarkup
 {
+    private const ButtonColumn = 10;
+    private const InlineButtonColumn = 20;
+
+    const ButtonText = 1;
+    const ButtonContact = 2;
+    const ButtonLocation = 3;
+    const ButtonPoll = 4;
+    const ButtonWebApp = 5;
+
+    const ButtonCallback = 1;
+    const ButtonUrl = 2;
+    const ButtonSwitchQuery = 3;
+    const ButtonSwitchQueryCurrentChat = 4;
+    const ButtonGame = 5;
+    const ButtonPay = 6;
+    const ButtonLoginUrl = 6;
+
+
     private static array $keyboards = [];
 
     /**
@@ -35,7 +53,7 @@ class ReplyMarkup
      */
     public static function make($rows, array $options = [], bool $json = true): mixed
     {
-        $keyboard = new static($options);
+        $keyboard = new self($options);
 
         $array = $keyboard->isInlineKeyboard($rows)
             ? $keyboard->inlineKeyboard($rows)
@@ -54,6 +72,8 @@ class ReplyMarkup
     }
 
     /**
+     * Create inline keyboard button
+     *
      * @param array $rows
      * @return array
      */
@@ -61,19 +81,8 @@ class ReplyMarkup
     {
         $inline_keyboard = [];
 
-        foreach ($rows as $row) {
-            $columns = [];
-            foreach ($row as $column)
-                $columns[] = match ($column[2] ?? 1) {
-                    1 => ['text' => $column[0], 'callback_data' => $column[1]],
-                    2 => ['text' => $column[0], 'url' => $column[1]],
-                    3 => ['text' => $column[0], 'switch_inline_query' => $column[1]],
-                    4 => ['text' => $column[0], 'switch_inline_query_current_chat' => $column[1]],
-                    5 => ['text' => $column[0], 'callback_game' => $column[1]]
-                };
-
-            $inline_keyboard[] = $columns;
-        }
+        foreach ($rows as $row)
+            $inline_keyboard[] = array_map(fn($column) => self::createColumn($column, self::InlineButtonColumn), $row);
 
         return array_merge($this->defaults, compact(
             'inline_keyboard'
@@ -81,6 +90,8 @@ class ReplyMarkup
     }
 
     /**
+     * Create keyboard button
+     *
      * @param array $rows
      * @return array
      */
@@ -89,15 +100,7 @@ class ReplyMarkup
         $keyboard = [];
 
         foreach ($rows as $row) {
-            $columns = [];
-            foreach ($row as $column)
-                $columns[] = match ($column[1] ?? 1) {
-                    1 => ['text' => $column[0]],
-                    2 => ['text' => $column[0], 'request_contact' => true],
-                    3 => ['text' => $column[0], 'request_location' => true],
-                };
-
-            $keyboard[] = $columns;
+            $keyboard[] = array_map([self::class, 'createColumn'], $row);
         }
 
         return array_merge($this->defaults, compact(
@@ -105,6 +108,41 @@ class ReplyMarkup
         ));
     }
 
+    /**
+     * Create row column based on the structure of the framework
+     *
+     * @param $column
+     * @param $type
+     * @return array
+     */
+    private static function createColumn($column, $type = self::ButtonColumn): array
+    {
+        [$a, $b] = split_keys($column);
+        $colType = $a['type'] ?? array_last($b);
+        unset($a['type']);
+
+        return match ((is_int($colType) ? $colType : 1) ^ $type) {
+            self::ButtonText ^ self::ButtonColumn => ['text' => $b[0]] + $a,
+            self::ButtonContact ^ self::ButtonColumn => ['text' => $b[0], 'request_contact' => true] + $a,
+            self::ButtonLocation ^ self::ButtonColumn => ['text' => $b[0], 'request_location' => true] + $a,
+            self::ButtonPoll ^ self::ButtonColumn => ['text' => $b[0], 'request_poll' => $b[1]] + $a,
+            self::ButtonWebApp ^ self::ButtonColumn => ['text' => $b[0], 'web_app' => $b[1]] + $a,
+            self::ButtonCallback ^ self::InlineButtonColumn => ['text' => $b[0], 'callback_data' => $b[1]] + $a,
+            self::ButtonUrl ^ self::InlineButtonColumn => ['text' => $b[0], 'url' => $b[1]] + $a,
+            self::ButtonSwitchQuery ^ self::InlineButtonColumn => ['text' => $b[0], 'switch_inline_query' => $b[1]] + $a,
+            self::ButtonSwitchQueryCurrentChat & self::InlineButtonColumn => ['text' => $b[0], 'switch_inline_query_current_chat' => $b[1]] + $a,
+            self::ButtonGame ^ self::InlineButtonColumn => ['text' => $b[0], 'callback_game' => $b[1]] + $a,
+            self::ButtonPay ^ self::InlineButtonColumn => ['text' => $b[0], 'pay' => true],
+            self::ButtonLoginUrl ^ self::InlineButtonColumn => ['text' => $b[0], 'login_url' => $b[1]],
+            default => [],
+        };
+    }
+
+    /**
+     * Get an object for ReplyMarkupRemove
+     *
+     * @return string
+     */
     public static function remove(): string
     {
         return json_encode([
@@ -112,14 +150,22 @@ class ReplyMarkup
         ]);
     }
 
-    public static function generate(?string $key = null, ...$args)
+    /**
+     * Generate reply markup keyboards from specified files.
+     * Access in the form of dot notation.
+     *
+     * @param string|null $key
+     * @param ...$args
+     * @return mixed|string|null
+     */
+    public static function generate(?string $key = null, ...$args): mixed
     {
-        static::$keyboards ??= require_once config('telegram.keyboards_path', function () {
+        self::$keyboards ??= require_once config('telegram.keyboards_path', function () {
             throw new \Exception('You must set keyboards_path key in config/telegram.php');
         });
 
         if (isset($args['remove']) && $args['remove'] === true) {
-            return static::remove();
+            return self::remove();
         }
 
         $json = $args['json'] ?? true;
@@ -127,7 +173,7 @@ class ReplyMarkup
         $default = $args['default'] ?? null;
         unset($args['json'], $args['options'], $args['default']);
 
-        if (is_array($value = value(data_get(static::$keyboards, $key, $default), ... $args))) {
+        if (is_array($value = value(data_get(self::$keyboards, $key, $default), ... $args))) {
             return ReplyMarkup::make($value, $options, $json);
         }
 

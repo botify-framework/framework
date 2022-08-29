@@ -632,3 +632,18 @@ if (! function_exists('Botify\\escape_markdown')) {
         ], $text);
     }
 }
+
+if (! function_exists('Botify\\split_keys')) {
+    /**
+     * Separation of an array into two parts of string and numeric keys
+     *
+     * @param array $source
+     * @return array
+     */
+    function split_keys(array $source): array
+    {
+        $integerIndexes = array_filter($source, 'is_int', ARRAY_FILTER_USE_KEY);
+
+        return [array_diff($source, $integerIndexes), array_values($integerIndexes)];
+    }
+}
