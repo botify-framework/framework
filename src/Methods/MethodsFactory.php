@@ -142,7 +142,6 @@ final class MethodsFactory
                 return $this->{$name}(... $arguments);
             }
 
-            isset($arguments['parse_mode']) || $arguments['parse_mode'] = config('telegram.parse_mode', 'html');
             $arguments = [$arguments];
             $cast = $responses[strtolower($name)] ?? false;
 
@@ -222,12 +221,13 @@ final class MethodsFactory
             foreach (self::$meable_attributes as $attr)
                 if (isset($attributes[$attr]) && is_string($attribute = &$attributes[$attr]) && $attribute === 'me')
                     $attribute = config('telegram.bot_user_id');
+
+            isset($attributes['parse_mode']) || $attributes['parse_mode'] = config('telegram.parse_mode', 'html');
         });
     }
 
     /**
      * @param $receptor
-     * @return bool
      */
     private function findReceptor(&$receptor)
     {
