@@ -10,7 +10,7 @@ use Botify\Traits\Stringable;
 use Botify\Utils\LazyJsonMapper;
 use Throwable;
 use function Amp\call;
-use function Botify\{array_first, button, collect, config, gather};
+use function Botify\{array_first, collect, config, gather, keyboard};
 
 /**
  * Message
@@ -518,21 +518,22 @@ class Message extends LazyJsonMapper
     }
 
     /**
-     * Copy current message to specified chat
+     * Copy current message to specified chat (default is current chat)
      *
-     * @param $to
+     * @param null $chat_id
      * @param ...$args
      * @return Promise
      */
-    public function copy($to = null, ...$args): Promise
+    public function copy($chat_id = null, ...$args): Promise
     {
-        $to ??= $this->chat->id;
+        $chat_id ??= $this->chat->id;
 
-        return $this->getAPI()->copyMessage(... $args + [
-                'chat_id' => $to,
+        return $this->getAPI()->copyMessage($this->preparer([
+            'chat_id' => $chat_id,
                 'from_chat_id' => $this->chat->id,
                 'message_id' => $this->message_id
-            ]);
+            ], $args
+        ));
     }
 
     /**
@@ -544,10 +545,10 @@ class Message extends LazyJsonMapper
     public function delete(int $count = 0): Promise
     {
         return gather(array_map(function ($message_id) {
-            return $this->getAPI()->deleteMessage(
-                chat_id: $this->chat->id,
-                message_id: $message_id,
-            );
+            return $this->getAPI()->deleteMessage([
+                'chat_id' => $this->chat->id,
+                'message_id' => $message_id,
+            ]);
         }, range($id = $this->message_id, $id - $count)));
     }
 
@@ -598,15 +599,16 @@ class Message extends LazyJsonMapper
         $messageId = $this->message_id;
 
         return $this->isText()
-            ? $this->getAPI()->editMessageText(... $args + [
-                    'chat_id' => $chatId,
-                    'message_id' => $messageId,
-                    'text' => $text
-                ]) : $this->getAPI()->editMessageCaption(... $args + [
-                    'chat_id' => $chatId,
-                    'message_id' => $messageId,
-                    'caption' => $text
-                ]);
+            ? $this->getAPI()->editMessageText($this->preparer([
+                'chat_id' => $chatId,
+                'message_id' => $messageId,
+                'text' => $text
+            ], $args)) 
+            : $this->getAPI()->editMessageCaption($this->preparer([
+                'chat_id' => $chatId,
+                'message_id' => $messageId,
+                'caption' => $text
+            ], $args));
     }
 
     /**
@@ -618,30 +620,35 @@ class Message extends LazyJsonMapper
      */
     public function editKeys($keyboard, ...$args): Promise
     {
-        return $this->getAPI()->editMessageReplyMarkup(array_merge($args, [
+        return $this->getAPI()->editMessageReplyMarkup($this->preparer([
             'chat_id' => $this->chat->id,
             'message_id' => $this->message_id,
             'reply_markup' => $keyboard,
-        ]));
+        ], $args));
     }
 
     /**
-     * Forward current message to specified chat
-     * @param $to
+     * Forward current message to specified chat (default is current chat)
+     *
+     * @param null $chat_id
      * @param ...$args
-     * @return mixed
+     * @return Promise
      */
-    public function forward($to = null, ...$args): mixed
+    public function forward($chat_id = null, ...$args): Promise
     {
-        $to ??= $this->chat->id;
+        $chat_id ??= $this->chat->id;
 
-        return $this->getAPI()->forwardMessage(... $args + [
-                'chat_id' => $to,
-                'from_chat_id' => $this->chat->id,
-                'message_id' => $this->message_id,
-            ]);
+        return $this->getAPI()->forwardMessage($this->preparer([
+            'chat_id' => $chat_id,
+            'from_chat_id' => $this->chat->id,
+            'message_id' => $this->message_id,
+        ], $args));
     }
 
+    /** Accessing to message threads If the message is replicated on another message
+     *
+     * @return Producer
+     */
     public function getThread(): Producer
     {
         return new Producer(function ($emit) {
@@ -658,6 +665,11 @@ class Message extends LazyJsonMapper
         });
     }
 
+    /**
+     * Fresh current message instance
+     *
+     * @return Promise
+     */
     public function fresh(): Promise
     {
         return call(function () {
@@ -698,12 +710,12 @@ class Message extends LazyJsonMapper
      */
     public function replyAnimation(string $animation, ...$args): Promise
     {
-        return $this->getAPI()->sendAnimation(... $args + [
-                'chat_id' => $this->chat->id,
-                'animation' => $animation,
-                'reply_to_message_id' => $this->message_id,
-                'allow_sending_without_reply' => true
-            ]);
+        return $this->getAPI()->sendAnimation($this->preparer([
+            'chat_id' => $this->chat->id,
+            'animation' => $animation,
+            'reply_to_message_id' => $this->message_id,
+            'allow_sending_without_reply' => true
+        ], $args));
     }
 
     /**
@@ -715,12 +727,12 @@ class Message extends LazyJsonMapper
      */
     public function replyAudio(string $audio, ...$args): Promise
     {
-        return $this->getAPI()->sendAudio(... $args + [
-                'chat_id' => $this->chat->id,
-                'audio' => $audio,
-                'reply_to_message_id' => $this->message_id,
-                'allow_sending_without_reply' => true
-            ]);
+        return $this->getAPI()->sendAudio($this->preparer([
+            'chat_id' => $this->chat->id,
+            'audio' => $audio,
+            'reply_to_message_id' => $this->message_id,
+            'allow_sending_without_reply' => true
+        ], $args));
     }
 
     /**
@@ -733,13 +745,13 @@ class Message extends LazyJsonMapper
      */
     public function replyContact(string $phone_number, string $first_name, ...$args): Promise
     {
-        return $this->getAPI()->sendContact(... $args + [
-                'chat_id' => $this->chat->id,
-                'phone_number' => $phone_number,
-                'first_name' => $first_name,
-                'reply_to_message_id' => $this->message_id,
-                'allow_sending_without_reply' => true
-            ]);
+        return $this->getAPI()->sendContact($this->preparer([
+            'chat_id' => $this->chat->id,
+            'phone_number' => $phone_number,
+            'first_name' => $first_name,
+            'reply_to_message_id' => $this->message_id,
+            'allow_sending_without_reply' => true
+        ], $args));
     }
 
     /**
@@ -751,12 +763,12 @@ class Message extends LazyJsonMapper
      */
     public function replyDice(string $emoji, ...$args): Promise
     {
-        return $this->getAPI()->sendDice(... $args + [
-                'chat_id' => $this->chat->id,
-                'emoji' => $emoji,
-                'reply_to_message_id' => $this->message_id,
-                'allow_sending_without_reply' => true
-            ]);
+        return $this->getAPI()->sendDice($this->preparer([
+            'chat_id' => $this->chat->id,
+            'emoji' => $emoji,
+            'reply_to_message_id' => $this->message_id,
+            'allow_sending_without_reply' => true
+        ], $args));
     }
 
     /**
@@ -768,12 +780,12 @@ class Message extends LazyJsonMapper
      */
     public function replyDocument(string $document, ...$args): Promise
     {
-        return $this->getAPI()->sendDocument(... $args + [
-                'chat_id' => $this->chat->id,
-                'document' => $document,
-                'reply_to_message_id' => $this->message_id,
-                'allow_sending_without_reply' => true
-            ]);
+        return $this->getAPI()->sendDocument($this->preparer([
+            'chat_id' => $this->chat->id,
+            'document' => $document,
+            'reply_to_message_id' => $this->message_id,
+            'allow_sending_without_reply' => true
+        ], $args));
     }
 
     /**
@@ -786,13 +798,13 @@ class Message extends LazyJsonMapper
      */
     public function replyLocation(float $latitude, float $longitude, ...$args): Promise
     {
-        return $this->getAPI()->sendLocation(... $args + [
-                'chat_id' => $this->chat->id,
-                'latitude' => $latitude,
-                'longitude' => $longitude,
-                'reply_to_message_id' => $this->message_id,
-                'allow_sending_without_reply' => true
-            ]);
+        return $this->getAPI()->sendLocation($this->preparer([
+            'chat_id' => $this->chat->id,
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'reply_to_message_id' => $this->message_id,
+            'allow_sending_without_reply' => true
+        ], $args));
     }
 
     /**
@@ -804,12 +816,12 @@ class Message extends LazyJsonMapper
      */
     public function replyMediaGroup(array $media, ...$args): Promise
     {
-        return $this->getAPI()->sendMediaGroup(array_merge($args, [
+        return $this->getAPI()->sendMediaGroup($this->preparer([
             'chat_id' => $this->chat->id,
             'media' => $media,
             'reply_to_message_id' => $this->message_id,
             'allow_sending_without_reply' => true
-        ]));
+        ], $args));
     }
 
     /**
@@ -821,12 +833,12 @@ class Message extends LazyJsonMapper
      */
     public function replyPhoto(string $photo, ...$args): Promise
     {
-        return $this->getAPI()->sendPhoto(... $args + [
-                'chat_id' => $this->chat->id,
-                'photo' => $photo,
-                'reply_to_message_id' => $this->message_id,
-                'allow_sending_without_reply' => true
-            ]);
+        return $this->getAPI()->sendPhoto($this->preparer([
+            'chat_id' => $this->chat->id,
+            'photo' => $photo,
+            'reply_to_message_id' => $this->message_id,
+            'allow_sending_without_reply' => true
+        ], $args));
     }
 
     /**
@@ -839,13 +851,13 @@ class Message extends LazyJsonMapper
      */
     public function replyPoll(string $question, array $options, array ...$args): Promise
     {
-        return $this->getAPI()->sendPoll(... $args + [
-                'chat_id' => $this->chat->id,
-                'question' => $question,
-                'options' => json_encode($options),
-                'reply_to_message_id' => $this->message_id,
-                'allow_sending_without_reply' => true
-            ]);
+        return $this->getAPI()->sendPoll($this->preparer([
+            'chat_id' => $this->chat->id,
+            'question' => $question,
+            'options' => json_encode($options),
+            'reply_to_message_id' => $this->message_id,
+            'allow_sending_without_reply' => true
+        ], $args));
     }
 
     /**
@@ -857,12 +869,12 @@ class Message extends LazyJsonMapper
      */
     public function replySticker(string $sticker, ...$args): Promise
     {
-        return $this->getAPI()->sendSticker(... $args + [
-                'chat_id' => $this->chat->id,
-                'sticker' => $sticker,
-                'reply_to_message_id' => $this->message_id,
-                'allow_sending_without_reply' => true
-            ]);
+        return $this->getAPI()->sendSticker($this->preparer([
+            'chat_id' => $this->chat->id,
+            'sticker' => $sticker,
+            'reply_to_message_id' => $this->message_id,
+            'allow_sending_without_reply' => true
+        ], $args));
     }
 
     /**
@@ -883,15 +895,15 @@ class Message extends LazyJsonMapper
                ...$args
     ): Promise
     {
-        return $this->getAPI()->sendVenue(... $args + [
-                'chat_id' => $this->chat->id,
-                'latitude' => $latitude,
-                'longitude' => $longitude,
-                'title' => $title,
-                'address' => $address,
-                'reply_to_message_id' => $this->message_id,
-                'allow_sending_without_reply' => true
-            ]);
+        return $this->getAPI()->sendVenue($this->preparer([
+            'chat_id' => $this->chat->id,
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'title' => $title,
+            'address' => $address,
+            'reply_to_message_id' => $this->message_id,
+            'allow_sending_without_reply' => true
+        ], $args));
     }
 
     /**
@@ -903,12 +915,12 @@ class Message extends LazyJsonMapper
      */
     public function replyVideo(string $video, ...$args): Promise
     {
-        return $this->getAPI()->sendVideo(... $args + [
-                'chat_id' => $this->chat->id,
-                'video' => $video,
-                'reply_to_message_id' => $this->message_id,
-                'allow_sending_without_reply' => true
-            ]);
+        return $this->getAPI()->sendVideo($this->preparer([
+            'chat_id' => $this->chat->id,
+            'video' => $video,
+            'reply_to_message_id' => $this->message_id,
+            'allow_sending_without_reply' => true
+        ], $args));
     }
 
     /**
@@ -920,12 +932,12 @@ class Message extends LazyJsonMapper
      */
     public function replyVideoNote(string $video_note, ...$args): Promise
     {
-        return $this->getAPI()->sendVideoNote(... $args + [
-                'chat_id' => $this->chat->id,
-                'video_note' => $video_note,
-                'reply_to_message_id' => $this->message_id,
-                'allow_sending_without_reply' => true
-            ]);
+        return $this->getAPI()->sendVideoNote($this->preparer([
+            'chat_id' => $this->chat->id,
+            'video_note' => $video_note,
+            'reply_to_message_id' => $this->message_id,
+            'allow_sending_without_reply' => true
+        ], $args));
     }
 
     /**
@@ -937,12 +949,12 @@ class Message extends LazyJsonMapper
      */
     public function replyVoice(string $voice, ...$args): Promise
     {
-        return $this->getAPI()->sendVoice(... $args + [
-                'chat_id' => $this->chat->id,
-                'voice' => $voice,
-                'reply_to_message_id' => $this->message_id,
-                'allow_sending_without_reply' => true
-            ]);
+        return $this->getAPI()->sendVoice($this->preparer([
+            'chat_id' => $this->chat->id,
+            'voice' => $voice,
+            'reply_to_message_id' => $this->message_id,
+            'allow_sending_without_reply' => true
+        ], $args));
     }
 
     /**
@@ -955,7 +967,7 @@ class Message extends LazyJsonMapper
     {
         return call(function () use ($with) {
             $replied = yield $this->reply(
-                $with, reply_markup: button(remove: true)
+                $with, reply_markup: keyboard(remove: true)
             );
 
             return yield $replied->delete();
@@ -971,13 +983,12 @@ class Message extends LazyJsonMapper
      */
     public function reply(string $text, mixed ...$args): Promise
     {
-        return $this->getAPI()->sendMessage(... $args + [
-                'chat_id' => $this->chat->id,
-                'text' => $text,
-                'parse_mode' => 'html',
-                'reply_to_message_id' => $this->message_id,
-                'allow_sending_without_reply' => true
-            ]);
+        return $this->getAPI()->sendMessage($this->preparer([
+            'chat_id' => $this->chat->id,
+            'text' => $text,
+            'reply_to_message_id' => $this->message_id,
+            'allow_sending_without_reply' => true
+        ], $args));
     }
 
     /**
