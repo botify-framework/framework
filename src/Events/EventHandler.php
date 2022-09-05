@@ -27,13 +27,13 @@ class EventHandler implements ArrayAccess
 {
     use Accessible;
 
-    protected ?TelegramAPI $api = null;
-    public $current;
-    protected LoggerInterface $logger;
-    protected ?Redis $redis = null;
-    protected Bag $bag;
-    protected ?Update $update = null;
-    public bool $started = false;
+    private ?TelegramAPI $api = null;
+    private $current;
+    private LoggerInterface $logger;
+    private ?Redis $redis = null;
+    private Bag $bag;
+    private ?Update $update = null;
+    private bool $started = false;
 
     /**
      * Dynamic method proxy for calling TelegramAPI methods
@@ -98,7 +98,7 @@ class EventHandler implements ArrayAccess
         });
     }
 
-    public function handleMention(callable $callback): Promise|Success
+    private function handleMention(callable $callback): Promise|Success
     {
         if (isset($this->update['message'])) {
             /** @var Message $message */
@@ -270,5 +270,29 @@ class EventHandler implements ArrayAccess
         return tap($this->started, function () {
             $this->started = true;
         });
+    }
+
+    /**
+     * @return LoggerInterface
+     */
+    public function getLogger(): LoggerInterface
+    {
+        return $this->logger;
+    }
+
+    /**
+     * @return TelegramAPI|null
+     */
+    public function getAPI(): ?TelegramAPI
+    {
+        return $this->api;
+    }
+
+    /**
+     * @return Redis|null
+     */
+    public function getRedis(): ?Redis
+    {
+        return $this->redis;
     }
 }
