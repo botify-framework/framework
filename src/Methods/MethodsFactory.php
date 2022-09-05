@@ -13,7 +13,7 @@ use Botify\Utils\FallbackResponse;
 use Botify\Utils\Logger\Logger;
 use Exception;
 use function Amp\call;
-use function Botify\{array_some, config, retry, value};
+use function Botify\{array_some, config, gather, retry, value};
 
 /**
  * @mixin MethodsDoc
@@ -143,12 +143,21 @@ final class MethodsFactory
             }
 
             isset($arguments['parse_mode']) || $arguments['parse_mode'] = config('telegram.parse_mode', 'html');
-            $arguments = [$arguments];
             $cast = $responses[strtolower($name)] ?? false;
 
             return call(function () use ($name, $arguments, $cast) {
+                yield gather(array_map(function ($attr) use (&$arguments) {
+                    return call(function() use ($attr, &$arguments) {
+                        if (isset($arguments[$attr]) && !is_numeric($arguments[$attr])) {
+                            if ($user = yield $this->getUser($arguments[$attr])) {
+                                $arguments[$attr] = $user->id;
+                            }
+                        }
+                    });
+                }, ['chat_id', 'user_id']));
+
                 return yield retry($times = config('telegram.sleep_threshold', 1), function ($attempts) use ($name, $times, $cast, $arguments) {
-                    $request = yield $this->client->post($name, ... $arguments);
+                    $request = yield $this->client->post($name, $arguments);
                     $response = yield $request->json();
 
                     if (empty($response['ok'])) {
@@ -214,7 +223,6 @@ final class MethodsFactory
                     $replyMarkup = ReplyMarkup::make($replyMarkup);
                 }
             }
-
 
             isset($attributes['user_id']) && $this->findReceptor($attributes['user_id']);
             isset($attributes['chat_id']) && $this->findReceptor($attributes['chat_id']);
