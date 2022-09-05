@@ -98,7 +98,7 @@ class EventHandler implements ArrayAccess
         });
     }
 
-    private function handleMention(callable $callback): Promise|Success
+    final public function handleMention(callable $callback): Promise|Success
     {
         if (isset($this->update['message'])) {
             /** @var Message $message */
