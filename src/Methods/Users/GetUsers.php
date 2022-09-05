@@ -6,6 +6,7 @@ use Amp\Promise;
 use Botify\Types\Map\User;
 use function Amp\call;
 use function Botify\collect;
+use function Botify\config;
 use function Botify\gather;
 
 trait GetUsers
@@ -22,7 +23,7 @@ trait GetUsers
 
             if (empty($id)) {
                 return false;
-            } elseif (!is_numeric($id) && $id !== 'me') {
+            } elseif (!is_numeric($id) && $id !== 'me' && config('telegram.cache_peers', true)) {
                 $id = yield $this->redis?->getMap('users')
                     ->getValue($id);
             }

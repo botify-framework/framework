@@ -2,6 +2,7 @@
 
 namespace Botify\Utils\Logger;
 
+use Amp\Promise;
 use Botify\Utils\Logger\Colorize\Colorize;
 use ErrorException;
 use Exception;
@@ -10,10 +11,18 @@ use Psr\Log\LoggerTrait;
 use Psr\Log\LogLevel;
 use Throwable;
 use function Amp\ByteStream\getOutputBufferStream;
+use function Amp\call;
+use function Amp\coroutine;
+use function Amp\File\createDirectoryRecursively;
+use function Amp\File\getSize;
+use function Amp\File\isDirectory;
+use function Amp\File\isFile;
+use function Amp\File\openFile;
 use function Botify\array_some;
 use function Botify\base_path;
 use function Botify\config;
 use function Botify\env;
+use function Botify\gather;
 use function Botify\sprintln;
 
 class Logger extends AbstractLogger
@@ -46,6 +55,10 @@ class Logger extends AbstractLogger
 
     protected int $type = self::DEFAULT_TYPE;
 
+    protected string $logFile;
+    protected int $maxSize;
+    private array $handlers = [];
+
     /**
      * @throws Exception
      */
@@ -66,16 +79,21 @@ class Logger extends AbstractLogger
 
         $this->minLevel = $minLevel;
         $this->type = $type;
+        $this->logFile = config('app.logger_file', base_path('botify.log'));
+        $this->maxSize = (int) config('app.logger_max_size');
 
         set_error_handler(function ($code, $message, $file, $line) {
-            if (!array_some($this->excepts, fn($error) => str_contains($message, $error)))
+            if (!array_some($this->excepts, fn($error) => str_contains($message, $error))) {
                 $this->error(new ErrorException($message, 0, $code, $file, $line));
+            }
         });
 
         set_exception_handler(function ($e) {
             $message = $e->getMessage();
-            if (!array_some($this->excepts, fn($error) => str_contains($message, $error)))
+
+            if (!array_some($this->excepts, fn($error) => str_contains($message, $error))) {
                 $this->critical($e);
+            }
         });
     }
 
@@ -87,21 +105,30 @@ class Logger extends AbstractLogger
 
         $log = $this->interpolate($level, $message, $context);
 
-        $loggerFile = $this->getLoggerFile();
-
-        if (filesize($loggerFile) > config('app.logger_max_size')) {
-            file_put_contents($loggerFile, null);
-        }
-
         if ($this->type & static::ECHO_TYPE) {
             getOutputBufferStream()->write(Colorize::log($level, $log));
         }
 
         if ($this->type & static::FILE_TYPE) {
-            is_dir($logsDir = dirname($logFile = config('app.logger_file', base_path('botify.log'))))
-            || mkdir($logsDir, recursive: true);
-            file_put_contents($logFile, sprintln($log), FILE_APPEND);
+            $this->writeLogs($log);
         }
+
+        gather(array_map(function ($handler) use ($level, $message, $context){
+            return $handler($message, static::$levels[$level], $context);
+        }, $this->handlers));
+    }
+
+    private function writeLogs(string $log): Promise
+    {
+        return call(function () use ($log) {
+            $file = yield openFile($logFile = yield $this->getLoggerFile(), 'a+');
+
+            if ($this->maxSize < yield getSize($logFile)) {
+                yield $file->write('');
+            }
+
+            yield $file->write(sprintln($log));
+        });
     }
 
     public function interpolate($level, $message, array $context = []): string
@@ -150,11 +177,23 @@ class Logger extends AbstractLogger
         ];
     }
 
-    private function getLoggerFile()
+    private function getLoggerFile(): Promise
     {
-        is_dir($logsDir = dirname($logFile = config('app.logger_file', base_path('botify.log'))))
-        || mkdir($logsDir, recursive: true);
-        file_exists($logFile) || touch($logFile);
-        return $logFile;
+        return call(function () {
+            if (! yield isDirectory($logsDir = dirname($logFile = $this->logFile))) {
+                yield createDirectoryRecursively($logsDir);
+            }
+
+            if (! yield isFile($logFile)) {
+                \Amp\File\touch($logFile);
+            }
+
+            return $logFile;
+        });
+    }
+
+    public function addHandler(callable $handler)
+    {
+        $this->handlers[] = coroutine($handler);
     }
 }
