@@ -647,39 +647,43 @@ class Message extends LazyJsonMapper
 
     /** Accessing to message threads If the message is replicated on another message
      *
-     * @return Producer
+     * @return Promise
      */
-    public function getThreads(): Producer
+    public function getThreads(): Promise
     {
-        return new Producer(function ($emit) {
-            $message = $this;
+        return call(function () {
+            return new Producer(function ($emit) {
+                $message = $this;
 
-            while (true) {
-                yield $emit($message);
-                if (isset($message['reply_to_message'])) {
-                    $message = yield $message['reply_to_message']->fresh();
-                } else {
-                    break;
+                while (true) {
+                    yield $emit($message);
+                    if (isset($message['reply_to_message'])) {
+                        $message = yield $message['reply_to_message']->fresh();
+                    } else {
+                        break;
+                    }
                 }
-            }
+            });
         });
     }
 
     /**
      * Get the list of messages replicated to the current message
      *
-     * @return Producer
+     * @return Promise
      */
-    public function getReplies(): Producer
+    public function getReplies(): Promise
     {
-        return new Producer(function ($emit) {
-            $history = yield $this->chat->getHistory(function ($message) {
-                return isset($message['reply_to_message']) && $message['reply_to_message']['id'] === $this->id;
-            });
+        return call(function () {
+            return new Producer(function ($emit) {
+                $history = yield $this->chat->getHistory(function ($message) {
+                    return isset($message['reply_to_message']) && $message['reply_to_message']['id'] === $this->id;
+                });
 
-            while (yield $history->advance()) {
-                yield $emit($history->getCurrent());
-            }
+                while (yield $history->advance()) {
+                    yield $emit($history->getCurrent());
+                }
+            });
         });
     }
 
