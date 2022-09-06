@@ -26,7 +26,7 @@ trait GetMessages
             try {
                 $messages = yield $this->redis?->getMap('messages:' . $chat_id)->getAll();
 
-                foreach (array_reverse($messages) as $message) {
+                foreach ($messages as $message) {
                     if ($message = json_decode($message, true)) {
                         $message = new Message($message);
 
