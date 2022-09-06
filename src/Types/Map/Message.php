@@ -530,9 +530,9 @@ class Message extends LazyJsonMapper
 
         return $this->getAPI()->copyMessage($this->preparer([
             'chat_id' => $chat_id,
-                'from_chat_id' => $this->chat->id,
-                'message_id' => $this->message_id
-            ], $args
+            'from_chat_id' => $this->chat->id,
+            'message_id' => $this->message_id
+        ], $args
         ));
     }
 
@@ -603,7 +603,7 @@ class Message extends LazyJsonMapper
                 'chat_id' => $chatId,
                 'message_id' => $messageId,
                 'text' => $text
-            ], $args)) 
+            ], $args))
             : $this->getAPI()->editMessageCaption($this->preparer([
                 'chat_id' => $chatId,
                 'message_id' => $messageId,
@@ -649,7 +649,7 @@ class Message extends LazyJsonMapper
      *
      * @return Producer
      */
-    public function getThread(): Producer
+    public function getThreads(): Producer
     {
         return new Producer(function ($emit) {
             $message = $this;
@@ -661,6 +661,24 @@ class Message extends LazyJsonMapper
                 } else {
                     break;
                 }
+            }
+        });
+    }
+
+    /**
+     * Get the list of messages replicated to the current message
+     *
+     * @return Producer
+     */
+    public function getReplies(): Producer
+    {
+        return new Producer(function ($emit) {
+            $history = yield $this->chat->getHistory(function ($message) {
+                return isset($message['reply_to_message']) && $message['reply_to_message']['id'] === $this->id;
+            });
+
+            while (yield $history->advance()) {
+                yield $emit($history->getCurrent());
             }
         });
     }
