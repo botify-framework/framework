@@ -9,7 +9,7 @@ use Dotenv\Repository\RepositoryBuilder;
 
 class Application
 {
-    public const VERSION = 'v1.0.7';
+    public const VERSION = 'v1.0.1';
 
     public function __construct()
     {
