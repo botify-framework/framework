@@ -4,7 +4,6 @@ namespace Botify\Types\Map;
 
 use Amp\Promise;
 use Botify\Traits\Actionable;
-use Botify\Traits\HasHistory;
 use Botify\Traits\Notifiable;
 use Botify\Utils\LazyJsonMapper;
 use function Amp\call;
@@ -120,8 +119,7 @@ use function Botify\{gather, is_collection};
  */
 class Chat extends LazyJsonMapper
 {
-
-    use Actionable, HasHistory, Notifiable;
+    use Actionable, Notifiable;
 
     const JSON_PROPERTY_MAP = [
         'id' => 'int',

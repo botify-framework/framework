@@ -5,7 +5,6 @@ namespace Botify\Types\Map;
 use Amp\Producer;
 use Amp\Promise;
 use Botify\Traits\Actionable;
-use Botify\Traits\HasHistory;
 use Botify\Traits\Notifiable;
 use Botify\Utils\LazyJsonMapper;
 use function Amp\call;
@@ -96,7 +95,7 @@ use function Botify\value;
  */
 class User extends LazyJsonMapper
 {
-    use Actionable, HasHistory, Notifiable;
+    use Actionable, Notifiable;
 
     const JSON_PROPERTY_MAP = [
         Chat::class,

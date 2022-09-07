@@ -450,36 +450,10 @@ class Message extends LazyJsonMapper
 
         $this->bindDownloadable();
 
-
         call(function () {
             if (config('telegram.typing_mode')) {
                 if (isset($this->from['is_self']) && $this->from['is_self']) {
                     $this->chat->action();
-                }
-            }
-
-            if (config('telegram.cache_messages')) {
-                try {
-                    if (isset($this->chat['id'])) {
-                        if ($redis = $this->getAPI()->getRedis()) {
-                            $message = $this->toArray();
-                            $map = $redis->getMap($key = 'messages:' . $this->chat['id']);
-                            $field = $this->id;
-
-                            if (yield $map->hasKey($field)) {
-                                $message = array_merge(
-                                    json_decode(yield $map->getValue($field), true), $message
-                                );
-                            }
-
-                            unset($message['id'], $message['reply']);
-
-                            yield $map->setValue($field, json_encode($message));
-                            yield $this->getAPI()->getRedis()?->expireAt($key, strtotime('+48 hours'));
-                        }
-                    }
-                } catch (Throwable $e) {
-                    $this->getAPI()->getLogger()->warning($e->getMessage());
                 }
             }
         });
@@ -643,69 +617,6 @@ class Message extends LazyJsonMapper
             'from_chat_id' => $this->chat->id,
             'message_id' => $this->message_id,
         ], $args));
-    }
-
-    /** Accessing to message threads If the message is replicated on another message
-     *
-     * @return Promise
-     */
-    public function getThreads(): Promise
-    {
-        return call(function () {
-            return new Producer(function ($emit) {
-                $message = $this;
-
-                while (true) {
-                    yield $emit($message);
-                    if (isset($message['reply_to_message'])) {
-                        $message = yield $message['reply_to_message']->fresh();
-                    } else {
-                        break;
-                    }
-                }
-            });
-        });
-    }
-
-    /**
-     * Get the list of messages replicated to the current message
-     *
-     * @return Promise
-     */
-    public function getReplies(): Promise
-    {
-        return call(function () {
-            return new Producer(function ($emit) {
-                $history = yield $this->chat->getHistory(function ($message) {
-                    return isset($message['reply_to_message']) && $message['reply_to_message']['id'] === $this->id;
-                });
-
-                while (yield $history->advance()) {
-                    yield $emit($history->getCurrent());
-                }
-            });
-        });
-    }
-
-    /**
-     * Fresh current message instance
-     *
-     * @return Promise
-     */
-    public function fresh(): Promise
-    {
-        return call(function () {
-            $message = yield $this->getAPI()->getMessage([
-                'chat_id' => $this->chat['id'],
-                'message_id' => $this->id,
-            ]);
-
-            if ($message->isEmpty()) {
-                $message = $this;
-            }
-
-            return $message;
-        });
     }
 
     /**
