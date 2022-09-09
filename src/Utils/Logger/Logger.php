@@ -6,24 +6,17 @@ use Amp\Promise;
 use Botify\Utils\Logger\Colorize\Colorize;
 use ErrorException;
 use Exception;
-use Psr\Log\AbstractLogger;
-use Psr\Log\LoggerTrait;
-use Psr\Log\LogLevel;
+use Psr\Log\{AbstractLogger, LoggerTrait, LogLevel};
 use Throwable;
-use function Amp\ByteStream\getOutputBufferStream;
-use function Amp\call;
-use function Amp\coroutine;
-use function Amp\File\createDirectoryRecursively;
-use function Amp\File\getSize;
-use function Amp\File\isDirectory;
-use function Amp\File\isFile;
-use function Amp\File\openFile;
-use function Botify\array_some;
-use function Botify\base_path;
-use function Botify\config;
-use function Botify\env;
-use function Botify\gather;
-use function Botify\sprintln;
+use function Amp\{ByteStream\getOutputBufferStream,
+    call,
+    coroutine,
+    File\createDirectoryRecursively,
+    File\getSize,
+    File\isDirectory,
+    File\isFile,
+    File\openFile};
+use function Botify\{array_some, base_path, config, env, gather, sprintln};
 
 class Logger extends AbstractLogger
 {

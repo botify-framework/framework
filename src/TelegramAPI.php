@@ -20,19 +20,17 @@ use Botify\Methods\MethodsFactory;
 use Botify\Request\Client;
 use Botify\Traits\Accessible;
 use Botify\Types\Update;
-use Botify\Utils\LazyJsonMapper;
-use Botify\Utils\Logger\Logger;
-use Botify\Utils\Plugins\Plugin;
+use Botify\Utils\{LazyJsonMapper, Logger\Logger, Plugins\Plugin};
 use Closure;
 use Exception;
 use stdClass;
-use function Amp\ByteStream\getInputBufferStream;
-use function Amp\call;
-use function Amp\coroutine;
-use function Amp\File\createDirectoryRecursively;
-use function Amp\File\createSymlink;
-use function Amp\File\isDirectory;
-use function Amp\File\isSymlink;
+use function Amp\{ByteStream\getInputBufferStream,
+    call,
+    coroutine,
+    File\createDirectoryRecursively,
+    File\createSymlink,
+    File\isDirectory,
+    File\isSymlink};
 use const SIGINT;
 
 /**
