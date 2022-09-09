@@ -105,7 +105,7 @@ class Logger extends AbstractLogger
 
     public function log($level, $message, array $context = []): void
     {
-        if ((static::$levels[$level] < $this->minLevel) || strtolower(config('app.environment')) === 'production') {
+        if ((static::$levels[$level] > $this->minLevel) || strtolower(config('app.environment')) === 'production') {
             return;
         }
 
