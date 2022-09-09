@@ -221,6 +221,7 @@ class TelegramAPI implements ArrayAccess
 
                     Loop::repeat(config('telegram.loop_interval'), function () use ($allowedUpdates, &$offset) {
                         $updates = yield $this->getUpdates($offset, allowed_updates: $allowedUpdates);
+                        $this->getLogger()->emergency(sprintf('Memory consumption: %s', memory_usage(true)));
 
                         if (is_collection($updates) && $updates->isNotEmpty()) {
                             foreach ($updates as $update) {
@@ -290,6 +291,7 @@ class TelegramAPI implements ArrayAccess
                             $update = new Update(
                                 json_decode(yield $request->getBody()->buffer(), true) ?? []
                             );
+                            $this->getLogger()->emergency(sprintf('Memory consumption: %s', memory_usage(true)));
                             Handler::dispatch($update);
                             return new Response(Status::OK, stringOrStream: 'HTTP Ok');
                         }),
