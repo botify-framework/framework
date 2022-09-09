@@ -58,6 +58,7 @@ class Logger extends AbstractLogger
     protected string $logFile;
     protected int $maxSize;
     private array $handlers = [];
+    private string $name = 'botify';
 
     /**
      * @throws Exception
@@ -95,6 +96,11 @@ class Logger extends AbstractLogger
                 $this->critical($e);
             }
         });
+    }
+
+    public function setName($name)
+    {
+        $this->name = $name;
     }
 
     public function log($level, $message, array $context = []): void
@@ -157,7 +163,8 @@ class Logger extends AbstractLogger
         }
 
         return sprintf(
-            '[%s] [%s] %s %s',
+            '[%s] [%s] [%s] %s %s',
+            $this->name,
             date('Y/m/d H:i:s'),
             $level,
             $message,
