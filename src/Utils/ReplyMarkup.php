@@ -44,6 +44,47 @@ final class ReplyMarkup
         $this->defaults = array_merge($this->defaults, $options);
     }
 
+    /**
+     * Generate reply markup keyboards from specified files.
+     * Access in the form of dot notation.
+     *
+     * @param string|null $key
+     * @param ...$args
+     * @return mixed|string|null
+     */
+    public static function generate(?string $key = null, ...$args): mixed
+    {
+        self::$keyboards ??= require_once config('telegram.keyboards_path', function () {
+            throw new \Exception('You must set keyboards_path key in config/telegram.php');
+        });
+
+        if (isset($args['remove']) && $args['remove'] === true) {
+            return self::remove();
+        }
+
+        $json = $args['json'] ?? true;
+        $options = $args['options'] ?? [];
+        $default = $args['default'] ?? null;
+        unset($args['json'], $args['options'], $args['default']);
+
+        if (is_array($value = value(data_get(self::$keyboards, $key, $default), ... $args))) {
+            return ReplyMarkup::make($value, $options, $json);
+        }
+
+        return $default;
+    }
+
+    /**
+     * Get an object for ReplyMarkupRemove
+     *
+     * @return string
+     */
+    public static function remove(): string
+    {
+        return json_encode([
+            'remove_keyboard' => true,
+        ]);
+    }
 
     /**
      * @param $rows
@@ -90,25 +131,6 @@ final class ReplyMarkup
     }
 
     /**
-     * Create keyboard button
-     *
-     * @param array $rows
-     * @return array
-     */
-    public function keyboard(array $rows): array
-    {
-        $keyboard = [];
-
-        foreach ($rows as $row) {
-            $keyboard[] = array_map([self::class, 'createColumn'], $row);
-        }
-
-        return array_merge($this->defaults, compact(
-            'keyboard'
-        ));
-    }
-
-    /**
      * Create row column based on the structure of the framework
      *
      * @param $column
@@ -139,44 +161,21 @@ final class ReplyMarkup
     }
 
     /**
-     * Get an object for ReplyMarkupRemove
+     * Create keyboard button
      *
-     * @return string
+     * @param array $rows
+     * @return array
      */
-    public static function remove(): string
+    public function keyboard(array $rows): array
     {
-        return json_encode([
-            'remove_keyboard' => true,
-        ]);
-    }
+        $keyboard = [];
 
-    /**
-     * Generate reply markup keyboards from specified files.
-     * Access in the form of dot notation.
-     *
-     * @param string|null $key
-     * @param ...$args
-     * @return mixed|string|null
-     */
-    public static function generate(?string $key = null, ...$args): mixed
-    {
-        self::$keyboards ??= require_once config('telegram.keyboards_path', function () {
-            throw new \Exception('You must set keyboards_path key in config/telegram.php');
-        });
-
-        if (isset($args['remove']) && $args['remove'] === true) {
-            return self::remove();
+        foreach ($rows as $row) {
+            $keyboard[] = array_map([self::class, 'createColumn'], $row);
         }
 
-        $json = $args['json'] ?? true;
-        $options = $args['options'] ?? [];
-        $default = $args['default'] ?? null;
-        unset($args['json'], $args['options'], $args['default']);
-
-        if (is_array($value = value(data_get(self::$keyboards, $key, $default), ... $args))) {
-            return ReplyMarkup::make($value, $options, $json);
-        }
-
-        return $default;
+        return array_merge($this->defaults, compact(
+            'keyboard'
+        ));
     }
 }

@@ -110,8 +110,9 @@ class LazyJsonMapper extends \LazyJsonMapper\LazyJsonMapper implements ArrayAcce
      */
     protected function preparer(array $attrs, array $extra = []): array
     {
-        if(isset($extra[0]) && is_array($extra[0]))
+        if (isset($extra[0]) && is_array($extra[0])) {
             $extra = array_merge(array_shift($extra), $extra);
+        }
 
         return array_merge($attrs, $extra);
     }

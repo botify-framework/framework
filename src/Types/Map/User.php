@@ -142,7 +142,7 @@ class User extends LazyJsonMapper
                 return '<a href="tg://user?id=' . $this->id . '">' . htmlspecialchars($this->getFullName()) . '</a>';
             }),
             'markdown' => value(function () {
-                return '['. escape_markdown($this->getFullName()) .'](tg://user?id='. $this->getId() .')';
+                return '[' . escape_markdown($this->getFullName()) . '](tg://user?id=' . $this->getId() . ')';
             }),
             default => $this->isUsername() ? concat('@', $this->getUsername()) : '',
         });

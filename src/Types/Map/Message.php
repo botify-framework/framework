@@ -2,13 +2,11 @@
 
 namespace Botify\Types\Map;
 
-use Amp\Producer;
 use Amp\Promise;
 use Botify\Traits\HasCommand;
 use Botify\Traits\Notifiable;
 use Botify\Traits\Stringable;
 use Botify\Utils\LazyJsonMapper;
-use Throwable;
 use function Amp\call;
 use function Botify\{array_first, collect, config, gather, keyboard};
 

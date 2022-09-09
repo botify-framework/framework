@@ -120,11 +120,6 @@ class TelegramAPI implements ArrayAccess
         return $this->initiators;
     }
 
-    public function getLogger(): Utils\Logger\Logger
-    {
-        return $this->logger;
-    }
-
     public function getPlugin(): Plugin
     {
         return $this->plugin;
@@ -338,6 +333,11 @@ class TelegramAPI implements ArrayAccess
             litespeed_finish_request();
         if (function_exists('fastcgi_finish_request'))
             fastcgi_finish_request();
+    }
+
+    public function getLogger(): Utils\Logger\Logger
+    {
+        return $this->logger;
     }
 
     /**

@@ -82,6 +82,14 @@ class FileSystem
     }
 
     /**
+     * @return Promise
+     */
+    public function read(): Promise
+    {
+        return File\read($this->path);
+    }
+
+    /**
      * @return string
      */
     public function getAbsolutePath(): string
@@ -204,11 +212,12 @@ class FileSystem
     }
 
     /**
+     * @param string $data
      * @return Promise
      */
-    public function read(): Promise
+    public function write(string $data): Promise
     {
-        return File\read($this->path);
+        return File\write($this->path, $data);
     }
 
     /**
@@ -246,14 +255,5 @@ class FileSystem
     public function getDirName(): string
     {
         return dirname($this->path);
-    }
-
-    /**
-     * @param string $data
-     * @return Promise
-     */
-    public function write(string $data): Promise
-    {
-        return File\write($this->path, $data);
     }
 }

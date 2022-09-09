@@ -184,13 +184,6 @@ class Chat extends LazyJsonMapper
         ]);
     }
 
-    public function getAdministrators(): Promise
-    {
-        return $this->getAPI()->getChatAdministrators([
-            'chat_id' => $this->id,
-        ]);
-    }
-
     public function getCreator(): Promise
     {
         return call(function () {
@@ -202,6 +195,13 @@ class Chat extends LazyJsonMapper
 
             return false;
         });
+    }
+
+    public function getAdministrators(): Promise
+    {
+        return $this->getAPI()->getChatAdministrators([
+            'chat_id' => $this->id,
+        ]);
     }
 
     public function getAdministrator($user_id): Promise

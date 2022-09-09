@@ -27,8 +27,8 @@ class EventHandler implements ArrayAccess
 {
     use Accessible;
 
-    private ?TelegramAPI $api = null;
     public $current;
+    private ?TelegramAPI $api = null;
     private LoggerInterface $logger;
     private ?Redis $redis = null;
     private Bag $bag;

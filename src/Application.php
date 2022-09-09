@@ -17,11 +17,6 @@ class Application
         $this->setTimezone();
     }
 
-    public function setTimezone()
-    {
-        date_default_timezone_set(config('app.timezone'));
-    }
-
     public function bootDotEnv()
     {
         $repository = RepositoryBuilder::createWithNoAdapters()
@@ -33,5 +28,10 @@ class Application
         $dotenv = Dotenv::create($repository, __BASE_DIR__, ['.env']);
         $dotenv->load();
         $dotenv->ifPresent('BOT_TOKEN')->allowedRegexValues('/^\d{6,12}\:[[:alnum:]\-_]{35}$/');
+    }
+
+    public function setTimezone()
+    {
+        date_default_timezone_set(config('app.timezone'));
     }
 }

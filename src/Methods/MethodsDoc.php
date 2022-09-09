@@ -30,6 +30,7 @@ use Botify\Types\Map\StickerSet;
 use Botify\Types\Map\UserProfilePhotos;
 use Botify\Types\Map\WebhookInfo;
 use Botify\Types\Update;
+
 /**
  * @mixin Methods
  */

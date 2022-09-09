@@ -8,9 +8,9 @@ use Botify\Exceptions\RetryException;
 use Botify\Request\Client;
 use Botify\TelegramAPI;
 use Botify\Types\Map;
-use Botify\Utils\ReplyMarkup;
 use Botify\Utils\FallbackResponse;
 use Botify\Utils\Logger\Logger;
+use Botify\Utils\ReplyMarkup;
 use Exception;
 use function Amp\call;
 use function Botify\{array_some, config, gather, retry, value};
@@ -147,7 +147,7 @@ final class MethodsFactory
 
             return call(function () use ($name, $arguments, $cast) {
                 yield gather(array_map(function ($attr) use (&$arguments) {
-                    return call(function() use ($attr, &$arguments) {
+                    return call(function () use ($attr, &$arguments) {
                         if (isset($arguments[$attr]) && !is_numeric($arguments[$attr])) {
                             if ($user = yield $this->getUser($arguments[$attr])) {
                                 $arguments[$attr] = $user->id;

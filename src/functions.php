@@ -6,16 +6,14 @@ use Amp\Delayed;
 use Amp\Promise;
 use ArrayAccess;
 use Botify\Exceptions\RetryException;
-use Botify\Utils\ReplyMarkup;
 use Botify\Utils\Collection;
 use Botify\Utils\Config;
 use Botify\Utils\Dotty;
+use Botify\Utils\ReplyMarkup;
 use Closure;
 use Exception;
 use function Amp\call;
 use function Amp\coroutine;
-use function Amp\File\read;
-use function Amp\File\write;
 
 if (!function_exists('Botify\\retry')) {
     /**
@@ -616,7 +614,7 @@ if (!function_exists('Botify\\array_sole')) {
     }
 }
 
-if (! function_exists('Botify\\escape_markdown')) {
+if (!function_exists('Botify\\escape_markdown')) {
     /**
      * Escape markdown special chars
      *
@@ -633,7 +631,7 @@ if (! function_exists('Botify\\escape_markdown')) {
     }
 }
 
-if (! function_exists('Botify\\split_keys')) {
+if (!function_exists('Botify\\split_keys')) {
     /**
      * Separation of an array into two parts of string and numeric keys
      *
@@ -648,7 +646,7 @@ if (! function_exists('Botify\\split_keys')) {
     }
 }
 
-if (! function_exists('Botify\\format_bytes')) {
+if (!function_exists('Botify\\format_bytes')) {
     function format_bytes($bytes, $precision = 2): string
     {
         $units = array('B', 'KB', 'MB', 'GB', 'TB');
@@ -661,7 +659,7 @@ if (! function_exists('Botify\\format_bytes')) {
         return round($bytes, $precision) . ' ' . $units[$pow];
     }
 }
-if (! function_exists('Botify\\memory_usage')) {
+if (!function_exists('Botify\\memory_usage')) {
     function memory_usage(bool $real_usage = false): string
     {
         return format_bytes(memory_get_usage($real_usage));

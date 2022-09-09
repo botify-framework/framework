@@ -74,7 +74,7 @@ class Logger extends AbstractLogger
         $this->minLevel = $minLevel;
         $this->type = $type;
         $this->logFile = config('app.logger_file', base_path('botify.log'));
-        $this->maxSize = (int) config('app.logger_max_size');
+        $this->maxSize = (int)config('app.logger_max_size');
 
         set_error_handler(function ($code, $message, $file, $line) {
             if (!array_some($this->excepts, fn($error) => str_contains($message, $error))) {
@@ -112,22 +112,9 @@ class Logger extends AbstractLogger
             $this->writeLogs($log);
         }
 
-        gather(array_map(function ($handler) use ($level, $message, $context){
+        gather(array_map(function ($handler) use ($level, $message, $context) {
             return $handler($message, static::$levels[$level], $context);
         }, $this->handlers));
-    }
-
-    private function writeLogs(string $log): Promise
-    {
-        return call(function () use ($log) {
-            $file = yield openFile($logFile = yield $this->getLoggerFile(), 'a+');
-
-            if ($this->maxSize < yield getSize($logFile)) {
-                yield $file->write('');
-            }
-
-            yield $file->write(sprintln($log));
-        });
     }
 
     public function interpolate($level, $message, array $context = []): string
@@ -177,14 +164,27 @@ class Logger extends AbstractLogger
         ];
     }
 
+    private function writeLogs(string $log): Promise
+    {
+        return call(function () use ($log) {
+            $file = yield openFile($logFile = yield $this->getLoggerFile(), 'a+');
+
+            if ($this->maxSize < yield getSize($logFile)) {
+                yield $file->write('');
+            }
+
+            yield $file->write(sprintln($log));
+        });
+    }
+
     private function getLoggerFile(): Promise
     {
         return call(function () {
-            if (! yield isDirectory($logsDir = dirname($logFile = $this->logFile))) {
+            if (!yield isDirectory($logsDir = dirname($logFile = $this->logFile))) {
                 yield createDirectoryRecursively($logsDir);
             }
 
-            if (! yield isFile($logFile)) {
+            if (!yield isFile($logFile)) {
                 \Amp\File\touch($logFile);
             }
 
