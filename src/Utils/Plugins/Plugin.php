@@ -104,9 +104,11 @@ class Plugin
                 try {
                     $responses = yield gather(array_filter(array_map(function (Pluggable $plugin) {
                         return call(function () use ($plugin) {
-                            $plugin->setUpdate($this->update);
-                            $plugin->setAPI($this->update->getAPI());
-                            $plugin->setBag($this->bag);
+                            // If the instance is not cloned, there will be problems in LONG_POLLING and HTTP_SERVER
+                            // modes during long processes.
+                            $plugin = $plugin->setUpdate($this->update)
+                                ->setAPI($this->update->getAPI())
+                                ->setBag($this->bag);
 
                             if (method_exists($plugin, 'boot')) {
                                 yield $this->reflector->bindCallback([$plugin, 'boot']);
@@ -123,9 +125,9 @@ class Plugin
                             }
 
                             $response = yield $this->reflector->bindCallback($plugin->getCallback());
-
-                            $plugin->close();
-
+                            unset($plugin);
+                            // Cleanup additional objects
+                            gc_collect_cycles();
                             return $response;
                         });
                     }, $plugins)));

@@ -28,7 +28,7 @@ class EventHandler implements ArrayAccess
     use Accessible;
 
     private ?TelegramAPI $api = null;
-    private $current;
+    public $current;
     private LoggerInterface $logger;
     private ?Redis $redis = null;
     private Bag $bag;
@@ -257,12 +257,13 @@ class EventHandler implements ArrayAccess
      */
     final public function register(Update $update, Bag $bag): EventHandler
     {
-        $this->update = $update;
-        $this->api = $update->getAPI();
-        $this->redis = $this->api->getRedis();
-        $this->logger = $this->api->getLogger();
-        $this->bag = $bag;
-        return $this;
+        $self = clone $this;
+        $self->update = $update;
+        $self->api = $update->getAPI();
+        $self->redis = $self->api->getRedis();
+        $self->logger = $self->api->getLogger();
+        $self->bag = $bag;
+        return $self;
     }
 
     public function tapStarted(): bool

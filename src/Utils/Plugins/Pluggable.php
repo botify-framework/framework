@@ -49,14 +49,6 @@ abstract class Pluggable implements ArrayAccess
         return $this;
     }
 
-    public function close()
-    {
-        $this->api = null;
-        $this->update = null;
-        $this->bag = null;
-        $this->resetBag();
-    }
-
     public function continuePropagation()
     {
         throw new ContinuePropagation();
@@ -69,7 +61,9 @@ abstract class Pluggable implements ArrayAccess
 
     public function setAPI(TelegramAPI $api)
     {
-        $this->api = $api;
+        $self = clone $this;
+        $self->api = $api;
+        return $self;
     }
 
     public function getAccessibles(): array
@@ -97,22 +91,27 @@ abstract class Pluggable implements ArrayAccess
 
     public function setPriority(int $priority): Pluggable
     {
-        $this->priority = $priority;
-
-        return $this;
+        $self = clone $this;
+        $self->priority = $priority;
+        return $self;
     }
 
-    public function setBag(Bag $bag)
+    public function setBag(Bag $bag): Pluggable
     {
-        $this->bag = $bag;
+        $self = clone $this;
+        $self->bag = $bag;
+        return $self;
     }
 
     /**
      * @param Update $update
+     * @return Pluggable
      */
-    public function setUpdate(Update $update): void
+    public function setUpdate(Update $update): Pluggable
     {
-        $this->update = $update;
+        $self = clone $this;
+        $self->update = $update;
+        return $self;
     }
 
     public function stopPropagation()
