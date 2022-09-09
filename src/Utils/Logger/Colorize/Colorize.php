@@ -40,7 +40,7 @@ class Colorize
 
     public static function emergency($text)
     {
-        return static::apply($text, Color::BLACK, Background::RED);
+        return static::apply($text, Color::LIGHT_BLUE_ALT, Background::LIGHT_RED);
     }
 
     public static function error($text)
