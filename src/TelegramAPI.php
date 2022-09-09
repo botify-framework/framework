@@ -62,6 +62,7 @@ class TelegramAPI implements ArrayAccess
         $this->enableRedis();
         LazyJsonMapper::setAPI($this);
         $this->logger = new Utils\Logger\Logger(config('app.logger_level'), config('app.logger_type'));
+        $this->logger->setName(config('telegram.bot_user_id'));
         $this->client = new Client();
         $this->methodFactory = new MethodsFactory($this);
         $this->plugin = Plugin::factory(config('telegram.plugins_dir'));
