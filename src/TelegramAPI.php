@@ -17,6 +17,7 @@ use Amp\Socket;
 use ArrayAccess;
 use Botify\Events\Handler;
 use Botify\Methods\MethodsFactory;
+use Botify\Middlewares\Middleware;
 use Botify\Request\Client;
 use Botify\Traits\Accessible;
 use Botify\Types\Update;
@@ -43,7 +44,7 @@ class TelegramAPI implements ArrayAccess
     protected Client $client;
     protected Utils\Logger\Logger $logger;
     protected ?Redis $redis;
-    private array $initiators = [];
+    private array $middlewares = [];
     private MethodsFactory $methodFactory;
     private Plugin $plugin;
     private bool $runningInLoop = false;
@@ -115,9 +116,9 @@ class TelegramAPI implements ArrayAccess
         return $this->client;
     }
 
-    public function getInitiators(): array
+    public function getMiddlewares(): array
     {
-        return $this->initiators;
+        return $this->middlewares;
     }
 
     public function getPlugin(): Plugin
@@ -350,9 +351,22 @@ class TelegramAPI implements ArrayAccess
         Handler::addHandler(... func_get_args());
     }
 
-    public function onBefore(...$initiators)
+    private function parseMiddleware($middleware)
     {
-        $this->initiators += $initiators;
+        if (is_string($middleware)) {
+            return new $middleware();
+        } elseif ($middleware instanceof Middleware) {
+            return $middleware;
+        } elseif ($middleware instanceof Closure) {
+            return new class($middleware) extends Middleware {};
+        }
+    }
+
+    public function middleware(...$middlewares)
+    {
+        $this->middlewares = array_merge($this->middlewares, array_filter(
+            array_map(fn ($middleware) => $this->parseMiddleware($middleware), $middlewares)
+        ));
     }
 
     /**

@@ -14,7 +14,7 @@ use ReflectionUnionType;
 use Throwable;
 use function Amp\call;
 use function Amp\coroutine;
-use function Botify\{array_sole, gather};
+use function Botify\{array_first, array_sole, gather};
 
 class Handler
 {
@@ -51,11 +51,14 @@ class Handler
                     {
                     }
 
-                    public function bindCallback(callable $callback, array $arguments = [])
+                    public function bindCallback($callback, array $arguments = [])
                     {
-                        $reflection = is_array($callback)
-                            ? new ReflectionMethod(... $callback)
-                            : new ReflectionFunction($callback);
+                        $reflection = is_object($callback) && is_callable($callback)
+                            ? new ReflectionMethod($callback, '__invoke')
+                            : (is_array($callback)
+                                ? new ReflectionMethod(... $callback)
+                                : new ReflectionFunction($callback));
+
                         $parameters = $reflection->getParameters();
 
                         foreach ($parameters as $index => $parameter) {
@@ -64,54 +67,62 @@ class Handler
                                 : [$parameter->getType()];
 
                             if ($value = array_sole($types, function ($type) {
-                                $name = $type->getName();
+                                if (! is_null($type)) {
+                                    $name = $type->getName();
 
-                                $isEqual = function () use ($name) {
-                                    foreach ($this->update::JSON_PROPERTY_MAP as $index => $item) {
-                                        if (str_ends_with($name, $item) && isset($this->update[$index])) {
-                                            return $this->update[$index];
+                                    $isEqual = function () use ($name) {
+                                        foreach (Update::JSON_PROPERTY_MAP as $index => $item) {
+                                            if (str_ends_with($name, $item) && isset($this->update[$index])) {
+                                                return $this->update[$index];
+                                            }
                                         }
+
+                                        return false;
+                                    };
+
+                                    if ($name === get_class($this->update)) {
+                                        return $this->update;
+                                    } elseif ($name === TelegramAPI::class) {
+                                        return $this->update->getAPI();
+                                    } elseif ($value = $isEqual()) {
+                                        return $value;
                                     }
-
-                                    return false;
-                                };
-
-                                if ($name === get_class($this->update)) {
-                                    return $this->update;
-                                } elseif ($name === TelegramAPI::class) {
-                                    return $this->update->getAPI();
-                                } elseif ($value = $isEqual()) {
-                                    return $value;
                                 }
                             })) {
                                 $arguments[$index] = $value;
                             } else {
-                                unset($parameters[$index]);
+                                if (isset($arguments[$parameter->getName()])) {
+                                    $arguments[$index] = $arguments[$parameter->getName()];
+                                    unset($arguments[$parameter->getName()]);
+                                } else {
+                                    unset($parameters[$index]);
+                                }
                             }
                         }
 
                         if ($reflection->getNumberOfParameters() === count($parameters)) {
-                            return coroutine($callback)(... $arguments);
-                        }
+                            $callback = coroutine($callback);
 
-                        return new Success();
+                            return $callback(... $arguments);
+                        }
+                        $callback = coroutine(static function () {
+                            return false;
+                        });
+
+                        return $callback();
                     }
                 };
                 $bag = new Bag();
                 $bag->setAPI($update->getAPI());
+                $middlewares = $update->getAPI()->getMiddlewares();
                 $promises = [];
 
-                foreach ($update->getAPI()->getInitiators() as $initiator) {
-                    if ($initiator instanceof Closure) {
-                        $promises[] = $reflector->bindCallback($initiator->bindTo($bag));
-                    }
+                foreach ($middlewares as $middleware) {
+                    $middleware = clone $middleware;
+                    $promises[] = $reflector->bindCallback($middleware->setBag($bag)->getHandler());
                 }
 
-                try {
-                    yield gather($promises);
-                } catch (Throwable $e) {
-                    return $update->getAPI()->getLogger()->critical($e);
-                }
+                yield gather($promises);
 
                 $privateHandler = new class extends EventHandler {
                 };

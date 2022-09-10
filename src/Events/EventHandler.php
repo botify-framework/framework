@@ -138,7 +138,7 @@ class EventHandler implements ArrayAccess
 
     public function getAccessibles(): array
     {
-        return [$this->api, $this->current, $this->bag];
+        return [$this->bag, $this->api, $this->current];
     }
 
     /**
