@@ -18,16 +18,14 @@ abstract class Pluggable implements ArrayAccess
     public ?Update $update;
     private ?TelegramAPI $api;
     private ?Bag $bag;
-    private $callback;
+    private $fn;
     private array $filters;
     private int $priority;
 
     final public function __construct(array $filters = [], ?callable $fn = null, int $priority = 0)
     {
         $this->filters = array_filter($filters, 'is_callable');
-        $this->callback = $fn instanceof Closure
-            ? $fn->bindTo($this)
-            : $fn;
+        $this->fn = $fn;
         $this->priority = $priority;
     }
 
@@ -73,7 +71,11 @@ abstract class Pluggable implements ArrayAccess
 
     final public function getCallback(): callable
     {
-        return $this->callback ?? [$this, 'handle'];
+        $callback = $this->fn ?? [$this, 'handle'];
+
+        return $callback instanceof Closure
+            ? $callback->bindTo($this)
+            : $callback;
     }
 
     /**
