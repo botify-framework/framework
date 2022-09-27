@@ -24,7 +24,7 @@ final class ReplyMarkup
     const ButtonLoginUrl = 6;
 
 
-    private static array $keyboards = false;
+    private static array $keyboards;
 
     /**
      * @var array
