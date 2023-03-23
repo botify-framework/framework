@@ -54,7 +54,7 @@ trait HasCommand
         return match($this){
             CallbackQuery::class => $this->data  ??'',
             InlineQuery::class => $this->query ??'',
-            Message::class => $this->data ?? $this->caption ??'',
+            Message::class => $this->text ?? $this->caption ??'',
         };
     }
     
