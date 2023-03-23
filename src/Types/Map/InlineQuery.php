@@ -2,8 +2,7 @@
 
 namespace Botify\Types\Map;
 
-use Botify\Traits\HasCommand;
-use Botify\Traits\Stringable;
+use Botify\Traits\{HasCommand, Stringable};
 use Botify\Utils\LazyJsonMapper;
 
 /**
@@ -46,7 +45,7 @@ use Botify\Utils\LazyJsonMapper;
  */
 class InlineQuery extends LazyJsonMapper
 {
-    use Stringable,HasCommand;
+    use Stringable, HasCommand;
 
     const JSON_PROPERTY_MAP = [
         'id' => 'string',
