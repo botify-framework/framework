@@ -2,6 +2,8 @@
 
 namespace Botify\Traits;
 
+use Botify\Types\Map\{CallbackQuery,InlineQuery,Message};
+
 use function Botify\array_some;
 use function Botify\value;
 
@@ -49,6 +51,11 @@ trait HasCommand
 
     private function getText(): string
     {
-        return $this->text ?? $this->caption ?? '';
+        return match($this){
+            CallbackQuery::class => $this->data  ??'',
+            InlineQuery::class => $this->query ??'',
+            Message::class => $this->text ?? $this->caption ??'',
+        };
     }
+    
 }

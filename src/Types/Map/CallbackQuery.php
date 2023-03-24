@@ -3,6 +3,8 @@
 namespace Botify\Types\Map;
 
 use Amp\Promise;
+use Botify\Traits\HasCommand;
+use Botify\Traits\Notifiable;
 use Botify\Traits\Stringable;
 use Botify\Utils\LazyJsonMapper;
 
@@ -52,7 +54,7 @@ use Botify\Utils\LazyJsonMapper;
 class CallbackQuery extends LazyJsonMapper
 {
 
-    use Stringable;
+    use Stringable,Notifiable,HasCommand;
 
     const JSON_PROPERTY_MAP = [
         'id' => 'string',
@@ -85,5 +87,10 @@ class CallbackQuery extends LazyJsonMapper
     protected function getStringableValue(): ?string
     {
         return $this->data;
+    }
+
+    private function getNotifiableId()
+    {
+        return $this->from->id;
     }
 }

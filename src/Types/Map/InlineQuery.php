@@ -2,6 +2,8 @@
 
 namespace Botify\Types\Map;
 
+use Botify\Traits\HasCommand;
+use Botify\Traits\Stringable;
 use Botify\Utils\LazyJsonMapper;
 
 /**
@@ -44,6 +46,7 @@ use Botify\Utils\LazyJsonMapper;
  */
 class InlineQuery extends LazyJsonMapper
 {
+    use Stringable,HasCommand;
 
     const JSON_PROPERTY_MAP = [
         'id' => 'string',
@@ -53,4 +56,8 @@ class InlineQuery extends LazyJsonMapper
         'chat_type' => 'string',
         'location' => 'Location',
     ];
+    protected function getStringableValue(): ?string
+    {
+        return $this->query;
+    }
 }
