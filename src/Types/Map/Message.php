@@ -3,7 +3,9 @@
 namespace Botify\Types\Map;
 
 use Amp\Promise;
-use Botify\Traits\{Notifiable, HasCommand, Stringable};
+use Botify\Traits\HasCommand;
+use Botify\Traits\Notifiable;
+use Botify\Traits\Stringable;
 use Botify\Utils\LazyJsonMapper;
 use function Amp\call;
 use function Botify\{array_first, collect, config, gather, keyboard};
@@ -435,14 +437,11 @@ class Message extends LazyJsonMapper
         }
 
         if (isset($this->entities) && $entity = array_first($this->entities)) {
-            if (
-                $entity->type === 'bot_command'
+            if ($entity->type === 'bot_command'
                 && ($command = mb_substr($text = $this->_getProperty('text'), $entity->offset, $entity->length))
-                && str_ends_with(strtolower($command), 'bot') && false !== $position = mb_strpos($command, '@')
-            ) {
+                && str_ends_with(strtolower($command), 'bot') && false !== $position = mb_strpos($command, '@')) {
                 $this->_setProperty('text', implode(explode(
-                    mb_substr($command, $position),
-                    $text
+                    mb_substr($command, $position), $text
                 )));
             }
         }
@@ -481,7 +480,7 @@ class Message extends LazyJsonMapper
      */
     protected function getDownloadableType(): mixed
     {
-        if ($type = collect(static::$downloadable_types)->first(fn ($item) => isset($this->{$item}))) {
+        if ($type = collect(static::$downloadable_types)->first(fn($item) => isset($this->{$item}))) {
             $this->_setProperty('type', $type);
 
             return $type;
@@ -501,13 +500,11 @@ class Message extends LazyJsonMapper
     {
         $chat_id ??= $this->chat->id;
 
-        return $this->getAPI()->copyMessage($this->preparer(
-            [
-                'chat_id' => $chat_id,
-                'from_chat_id' => $this->chat->id,
-                'message_id' => $this->message_id
-            ],
-            $args
+        return $this->getAPI()->copyMessage($this->preparer([
+            'chat_id' => $chat_id,
+            'from_chat_id' => $this->chat->id,
+            'message_id' => $this->message_id
+        ], $args
         ));
     }
 
@@ -538,9 +535,9 @@ class Message extends LazyJsonMapper
     {
         return call(function () use ($includeReply, $dist) {
             return (($includeReply && $this->reply_to_message?->getDownloadable())
-                ? $this->reply_to_message->getDownloadable()
-                : ($this->getDownloadable() ?: null)
-            )?->download($dist) ?? false;
+                    ? $this->reply_to_message->getDownloadable()
+                    : ($this->getDownloadable() ?: null)
+                )?->download($dist) ?? false;
         });
     }
 
@@ -826,8 +823,9 @@ class Message extends LazyJsonMapper
         float  $longitude,
         string $title,
         string $address,
-        ...$args
-    ): Promise {
+               ...$args
+    ): Promise
+    {
         return $this->getAPI()->sendVenue($this->preparer([
             'chat_id' => $this->chat->id,
             'latitude' => $latitude,
@@ -900,8 +898,7 @@ class Message extends LazyJsonMapper
     {
         return call(function () use ($with) {
             $replied = yield $this->reply(
-                $with,
-                reply_markup: keyboard(remove: true)
+                $with, reply_markup: keyboard(remove: true)
             );
 
             return yield $replied->delete();
