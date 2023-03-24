@@ -1,5 +1,5 @@
 {
-  "name": "botify-framework/framework",
+  "name": "mahdi/botify-framework",
   "description": "Create your own Telegram API bot asynchronously in PHP",
   "license": "MIT",
   "minimum-stability": "dev",
